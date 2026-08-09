@@ -10,6 +10,8 @@ import { HealthModule } from './modules/health/health.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 
+import { CatalogModule } from './modules/catalog/catalog.module';
+
 import configuration from './config/configuration';
 
 @Module({
@@ -33,8 +35,10 @@ import configuration from './config/configuration';
     HealthModule,
     UsersModule,
     AuthModule,
+    CatalogModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
+
 export class AppModule {}
