@@ -33,5 +33,6 @@ import { JwtStrategy } from '../../common/strategies/jwt.strategy';
       useClass: DevelopmentOtpProvider,
     },
   ],
+  exports: [AuthService, OtpService, TokenService, JwtModule],
 })
 export class AuthModule {}

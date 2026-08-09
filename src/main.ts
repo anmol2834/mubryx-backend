@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from '@fastify/helmet';
+import fastifyMultipart from '@fastify/multipart';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
@@ -22,6 +23,12 @@ async function bootstrap() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await app.register(helmet as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await app.register(fastifyMultipart as any, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+  });
 
   const corsOrigins = configService.get<string>('CORS_ORIGIN')?.split(',') || ['*'];
   app.enableCors({

@@ -91,19 +91,77 @@ model CustomerProfile {
   @@map("customer_profiles")
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum DocumentType {
+  AADHAAR
+  PAN
+  DRIVING_LICENSE
+  PASSPORT
+  VOTER_ID
+  OTHER
+}
+
 model TechnicianProfile {
-  id               String           @id @default(cuid())
-  userId           String           @unique
-  onboardingStatus OnboardingStatus @default(DRAFT)
+  id               String                 @id @default(cuid())
+  userId           String                 @unique
+  fullName         String?
+  dateOfBirth      String?
+  gender           Gender?
+  currentCity      String?
+  pinCode          String?
   bio              String?
   experienceYears  Int?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  onboardingStatus OnboardingStatus       @default(DRAFT)
+  submittedAt      DateTime?
+  profilePhoto     String?
+  documents        TechnicianDocument[]
+  experiences      TechnicianExperience[]
+  skills           Category[]             @relation("TechnicianSkills")
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
 
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([onboardingStatus])
   @@map("technician_profiles")
+}
+
+model TechnicianDocument {
+  id           String            @id @default(cuid())
+  technicianId String
+  technician   TechnicianProfile @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  type         DocumentType
+  objectKey    String
+  mimeType     String
+  fileSize     Int
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([technicianId])
+  @@map("technician_documents")
+}
+
+model TechnicianExperience {
+  id               String            @id @default(cuid())
+  technicianId     String
+  technician       TechnicianProfile @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  totalExperience  String
+  companyName      String
+  role             String
+  startDate        String
+  endDate          String
+  city             String?
+  responsibilities String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([technicianId])
+  @@map("technician_experiences")
 }
 
 enum CategoryPlacement {
@@ -127,6 +185,7 @@ model Category {
   iconColor         String?
   placement         CategoryPlacement   @default(NONE)
   Service           Service[]
+  technicianProfiles TechnicianProfile[] @relation("TechnicianSkills")
 }
 
 model Service {
