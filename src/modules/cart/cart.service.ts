@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
@@ -99,20 +100,27 @@ export class CartService {
     });
 
     if (!cart) {
-      cart = await this.prisma.cart.create({
-        data: {
-          customerId,
-          status: 'ACTIVE',
-          currency: 'INR',
-          version: 1,
-        },
-        include: {
-          items: {
-            include: { service: true },
-            orderBy: { createdAt: 'asc' },
+      try {
+        cart = await this.prisma.cart.create({
+          data: {
+            customerId,
+            status: 'ACTIVE',
+            currency: 'INR',
+            version: 1,
           },
-        },
-      });
+          include: {
+            items: {
+              include: { service: true },
+              orderBy: { createdAt: 'asc' },
+            },
+          },
+        });
+      } catch (err: any) {
+        if (err?.code === 'P2003') {
+          throw new UnauthorizedException('User account no longer exists or session is invalid');
+        }
+        throw err;
+      }
     }
 
     return this.formatCartResponse(cart);

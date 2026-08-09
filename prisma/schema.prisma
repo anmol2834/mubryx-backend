@@ -33,12 +33,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sessions       Session[]
-  refreshTokens  RefreshToken[]
-  customerProfile CustomerProfile?
+  sessions          Session[]
+  refreshTokens     RefreshToken[]
+  customerProfile   CustomerProfile?
   technicianProfile TechnicianProfile?
-  carts          Cart[]
-  addresses      CustomerAddress[]
+  carts             Cart[]
+  addresses         CustomerAddress[]
+  bookings          Booking[]
 
   @@index([phone])
   @@index([role])
@@ -213,6 +214,7 @@ model Service {
   tagColor      String?
   Category      Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   cartItems     CartItem[]
+  bookingItems  BookingItem[]
 }
 
 enum CartStatus {
@@ -263,25 +265,175 @@ model CartItem {
 }
 
 model CustomerAddress {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   customerId      String
-  label           String   @default("Home")
+  label           String    @default("Home")
   completeAddress String
   landmark        String?
-  city            String?  @default("Ahmedabad")
-  state           String?  @default("Gujarat")
+  city            String?   @default("Ahmedabad")
+  state           String?   @default("Gujarat")
   postalCode      String?
   latitude        Float?
   longitude       Float?
-  isDefault       Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  isDefault       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  customer        User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer        User      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  bookings        Booking[]
 
   @@unique([customerId, label])
   @@index([customerId])
   @@index([customerId, isDefault])
   @@map("customer_addresses")
+}
+
+// ─── Booking Enums ────────────────────────────────────────────────────────────
+
+enum BookingType {
+  ASAP
+  SCHEDULED
+}
+
+enum BookingStatus {
+  PENDING_MATCHING
+  TECHNICIAN_SEARCHING
+  TECHNICIAN_ASSIGNED
+  TECHNICIAN_ACCEPTED
+  TECHNICIAN_ON_THE_WAY
+  TECHNICIAN_ARRIVED
+  SERVICE_STARTED
+  SERVICE_COMPLETED
+  PAYMENT_PENDING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum PaymentMethod {
+  CASH_ON_SERVICE
+  UPI
+  CARD
+  WALLET
+  ONLINE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+}
+
+// ─── Booking Models ───────────────────────────────────────────────────────────
+
+model Booking {
+  id             String        @id @default(cuid())
+  bookingNumber  String        @unique
+  customerId     String
+  addressId      String?
+  idempotencyKey String        @unique
+
+  // Immutable address snapshot taken at booking time
+  snapshotLabel     String
+  snapshotAddress   String
+  snapshotLandmark  String?
+  snapshotCity      String?
+  snapshotState     String?
+  snapshotPostalCode String?
+  serviceLatitude   Float?
+  serviceLongitude  Float?
+
+  // Customer's current GPS at time of booking (separate from service location)
+  customerCurrentLat Float?
+  customerCurrentLng Float?
+
+  // Schedule
+  bookingType  BookingType   @default(ASAP)
+  scheduledAt  DateTime?
+
+  // Lifecycle
+  status              BookingStatus @default(PENDING_MATCHING)
+  technicianId        String?
+  assignedAt          DateTime?
+  acceptedAt          DateTime?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  cancellationReason  String?
+
+  // Payment
+  paymentMethod  PaymentMethod @default(CASH_ON_SERVICE)
+  paymentStatus  PaymentStatus @default(PENDING)
+
+  // Pricing (server-authoritative, immutable after creation)
+  subtotal    Float
+  discount    Float  @default(0)
+  tax         Float
+  platformFee Float
+  totalAmount Float
+  couponCode  String?
+
+  // Notes
+  customerNotes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  customer      User             @relation(fields: [customerId], references: [id])
+  address       CustomerAddress? @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  items         BookingItem[]
+  statusHistory BookingStatusHistory[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([customerId, status])
+  @@index([createdAt])
+  @@index([scheduledAt])
+  @@index([technicianId])
+  @@map("bookings")
+}
+
+model BookingItem {
+  id        String @id @default(cuid())
+  bookingId String
+  serviceId String
+
+  // Immutable price/service snapshots at booking time
+  serviceTitleSnapshot  String
+  categoryNameSnapshot  String?
+  durationSnapshot      String?
+  quantity              Int    @default(1)
+  unitPrice             Float
+  discount              Float  @default(0)
+  lineTotal             Float
+
+  createdAt DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@index([bookingId])
+  @@index([serviceId])
+  @@map("booking_items")
+}
+
+model BookingStatusHistory {
+  id            String        @id @default(cuid())
+  bookingId     String
+  fromStatus    BookingStatus?
+  toStatus      BookingStatus
+  changedBy     String?
+  changedByType String?       // 'CUSTOMER' | 'TECHNICIAN' | 'SYSTEM' | 'ADMIN'
+  reason        String?
+  metadata      Json?
+  createdAt     DateTime      @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([createdAt])
+  @@map("booking_status_history")
 }
 

@@ -2,10 +2,14 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -14,15 +18,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    // The decoded JWT payload. You can add extra DB checks here if needed,
-    // but typically validating the token signature and expiration is enough.
     if (!payload.sub || !payload.role) {
       throw new UnauthorizedException('Invalid token payload');
     }
-    
+
+    // Verify user exists in database to prevent orphaned/stale JWT tokens
+    // from causing Foreign Key constraint violations downstream.
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, role: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User account no longer exists or session is invalid');
+    }
+
     return {
-      userId: payload.sub,
-      role: payload.role,
+      userId: user.id,
+      role: user.role,
       sessionId: payload.sessionId,
     };
   }

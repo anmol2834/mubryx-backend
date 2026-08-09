@@ -15,6 +15,7 @@ import { CatalogModule } from './modules/catalog/catalog.module';
 import { CartModule } from './modules/cart/cart.module';
 import { TechniciansModule } from './modules/technicians/technicians.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
+import { BookingModule } from './modules/booking/booking.module';
 
 import configuration from './config/configuration';
 
@@ -44,6 +45,7 @@ import configuration from './config/configuration';
     CartModule,
     TechniciansModule,
     AddressesModule,
+    BookingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

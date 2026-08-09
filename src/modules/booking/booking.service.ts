@@ -1,0 +1,484 @@
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  ConflictException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CreateBookingDto } from './dto/create-booking.dto';
+import { CancelBookingDto } from './dto/cancel-booking.dto';
+import {
+  BookingStatus,
+  PaymentMethod,
+} from '../../generated/prisma/client';
+
+// ─── Status Machine ───────────────────────────────────────────────────────────
+
+const CANCELLABLE_STATUSES: BookingStatus[] = [
+  'PENDING_MATCHING',
+  'TECHNICIAN_SEARCHING',
+  'TECHNICIAN_ASSIGNED',
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function generateBookingNumber(): string {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  // 5-digit random suffix (10000–99999)
+  const seq = String(Math.floor(Math.random() * 90000) + 10000);
+  return `MBX-${yyyy}${mm}${dd}-${seq}`;
+}
+
+function calculatePricing(items: Array<{ unitPrice: number; quantity: number }>) {
+  const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  const discount = 0; // Coupon discount — reserved for future
+  const tax = Math.round(subtotal * 0.05);
+  const platformFee = items.length > 0 ? 49 : 0;
+  const totalAmount = subtotal - discount + tax + platformFee;
+  return { subtotal, discount, tax, platformFee, totalAmount };
+}
+
+// ─── Response Formatter ───────────────────────────────────────────────────────
+
+function formatBookingResponse(booking: any) {
+  return {
+    bookingId: booking.id,
+    bookingNumber: booking.bookingNumber,
+    status: booking.status,
+    bookingType: booking.bookingType,
+    scheduledAt: booking.scheduledAt ?? null,
+    paymentMethod: booking.paymentMethod,
+    paymentStatus: booking.paymentStatus,
+    serviceAddress: {
+      label: booking.snapshotLabel,
+      completeAddress: booking.snapshotAddress,
+      landmark: booking.snapshotLandmark ?? null,
+      city: booking.snapshotCity ?? null,
+      state: booking.snapshotState ?? null,
+      postalCode: booking.snapshotPostalCode ?? null,
+      latitude: booking.serviceLatitude ?? null,
+      longitude: booking.serviceLongitude ?? null,
+    },
+    items: (booking.items || []).map((item: any) => ({
+      id: item.id,
+      serviceId: item.serviceId,
+      title: item.serviceTitleSnapshot,
+      category: item.categoryNameSnapshot ?? null,
+      duration: item.durationSnapshot ?? null,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      discount: item.discount,
+      lineTotal: item.lineTotal,
+    })),
+    pricing: {
+      subtotal: booking.subtotal,
+      discount: booking.discount,
+      tax: booking.tax,
+      platformFee: booking.platformFee,
+      total: booking.totalAmount,
+    },
+    customerNotes: booking.customerNotes ?? null,
+    technicianId: booking.technicianId ?? null,
+    cancelledAt: booking.cancelledAt ?? null,
+    cancellationReason: booking.cancellationReason ?? null,
+    createdAt: booking.createdAt,
+    updatedAt: booking.updatedAt,
+  };
+}
+
+// ─── Service ──────────────────────────────────────────────────────────────────
+
+@Injectable()
+export class BookingService {
+  private readonly logger = new Logger(BookingService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
+
+  // ─── Create Booking ─────────────────────────────────────────────────────────
+
+  async createBooking(customerId: string, dto: CreateBookingDto) {
+    this.logger.log(`[createBooking] Starting for customer=${customerId} idempotency=${dto.idempotencyKey}`);
+
+    // ── 1. Idempotency check ───────────────────────────────────────────────────
+    const existing = await this.prisma.booking.findUnique({
+      where: { idempotencyKey: dto.idempotencyKey },
+      include: { items: true },
+    });
+
+    if (existing) {
+      if (existing.customerId !== customerId) {
+        throw new ForbiddenException('Idempotency key belongs to a different customer.');
+      }
+      this.logger.warn(`[createBooking] Idempotent retry detected. Returning existing booking ${existing.bookingNumber}`);
+      return { alreadyCreated: true, ...formatBookingResponse(existing) };
+    }
+
+    // ── 2. Validate address ────────────────────────────────────────────────────
+    const address = await this.prisma.customerAddress.findUnique({
+      where: { id: dto.addressId },
+    });
+
+    if (!address) {
+      throw new NotFoundException({
+        message: 'Service address not found.',
+        errorCode: 'BOOKING_ADDRESS_NOT_FOUND',
+      });
+    }
+
+    if (address.customerId !== customerId) {
+      throw new ForbiddenException({
+        message: 'This address does not belong to your account.',
+        errorCode: 'BOOKING_ADDRESS_NOT_OWNED',
+      });
+    }
+
+    // ── 3. Validate schedule ───────────────────────────────────────────────────
+    let scheduledAt: Date | null = null;
+
+    if (dto.bookingType === 'SCHEDULED') {
+      if (!dto.scheduledAt) {
+        throw new BadRequestException({
+          message: 'scheduledAt is required for SCHEDULED bookings.',
+          errorCode: 'BOOKING_INVALID_SCHEDULE',
+        });
+      }
+      scheduledAt = new Date(dto.scheduledAt);
+      if (scheduledAt <= new Date()) {
+        throw new BadRequestException({
+          message: 'Scheduled time must be in the future.',
+          errorCode: 'BOOKING_INVALID_SCHEDULE',
+        });
+      }
+    }
+
+    // ── 4. Load & validate active cart ────────────────────────────────────────
+    const cart = await this.prisma.cart.findFirst({
+      where: { customerId, status: 'ACTIVE' },
+      include: {
+        items: {
+          include: {
+            service: {
+              include: { Category: true },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    if (!cart || cart.items.length === 0) {
+      throw new BadRequestException({
+        message: 'Your cart is empty. Please add services before booking.',
+        errorCode: 'BOOKING_CART_EMPTY',
+      });
+    }
+
+    // ── 5. Validate all services are active ───────────────────────────────────
+    const unavailableServices = cart.items.filter(
+      (i) => !i.service || !i.service.isActive,
+    );
+
+    if (unavailableServices.length > 0) {
+      const names = unavailableServices.map((i) => i.service?.title ?? i.serviceId).join(', ');
+      throw new BadRequestException({
+        message: `The following services are no longer available: ${names}. Please remove them from your cart.`,
+        errorCode: 'BOOKING_SERVICE_UNAVAILABLE',
+      });
+    }
+
+    // ── 6. Server-authoritative pricing ───────────────────────────────────────
+    const pricedItems = cart.items.map((item) => {
+      const unitPrice = item.service.discountPrice ?? item.service.price;
+      return {
+        serviceId: item.serviceId,
+        serviceTitleSnapshot: item.service.title,
+        categoryNameSnapshot: item.service.Category?.name ?? null,
+        durationSnapshot: item.service.duration ?? null,
+        quantity: item.quantity,
+        unitPrice,
+        discount: 0,
+        lineTotal: unitPrice * item.quantity,
+      };
+    });
+
+    const pricing = calculatePricing(pricedItems);
+
+    // ── 7. Generate unique booking number (retry on collision) ─────────────────
+    let bookingNumber = generateBookingNumber();
+    let attempts = 0;
+
+    while (attempts < 5) {
+      const collision = await this.prisma.booking.findUnique({
+        where: { bookingNumber },
+      });
+      if (!collision) break;
+      bookingNumber = generateBookingNumber();
+      attempts++;
+    }
+
+    this.logger.log(`[createBooking] Creating booking ${bookingNumber} with ${pricedItems.length} items. Total=₹${pricing.totalAmount}`);
+
+    // ── 8. Transactional booking creation ─────────────────────────────────────
+    let newBooking: any;
+
+    try {
+      newBooking = await this.prisma.$transaction(async (tx) => {
+        // a. Create booking
+        const booking = await tx.booking.create({
+          data: {
+            bookingNumber,
+            customerId,
+            addressId: dto.addressId,
+            idempotencyKey: dto.idempotencyKey,
+
+            // Address snapshot (immutable)
+            snapshotLabel: address.label,
+            snapshotAddress: address.completeAddress,
+            snapshotLandmark: address.landmark ?? null,
+            snapshotCity: address.city ?? null,
+            snapshotState: address.state ?? null,
+            snapshotPostalCode: address.postalCode ?? null,
+            serviceLatitude: address.latitude ?? null,
+            serviceLongitude: address.longitude ?? null,
+
+            // Customer current GPS (optional, separate from service location)
+            customerCurrentLat: dto.customerCurrentLocation?.latitude ?? null,
+            customerCurrentLng: dto.customerCurrentLocation?.longitude ?? null,
+
+            // Schedule
+            bookingType: dto.bookingType ?? 'ASAP',
+            scheduledAt,
+
+            // Status
+            status: 'TECHNICIAN_SEARCHING',
+
+            // Payment
+            paymentMethod: (dto.paymentMethod as PaymentMethod),
+            paymentStatus: 'PENDING',
+
+            // Pricing
+            subtotal: pricing.subtotal,
+            discount: pricing.discount,
+            tax: pricing.tax,
+            platformFee: pricing.platformFee,
+            totalAmount: pricing.totalAmount,
+            couponCode: dto.couponCode ?? null,
+
+            // Notes
+            customerNotes: dto.notes ?? null,
+          },
+          include: { items: true },
+        });
+
+        // b. Create booking items (price snapshot)
+        await tx.bookingItem.createMany({
+          data: pricedItems.map((item) => ({
+            bookingId: booking.id,
+            ...item,
+          })),
+        });
+
+        // c. Initial status history entry
+        await tx.bookingStatusHistory.create({
+          data: {
+            bookingId: booking.id,
+            fromStatus: null,
+            toStatus: 'TECHNICIAN_SEARCHING',
+            changedBy: customerId,
+            changedByType: 'CUSTOMER',
+            reason: 'Booking created',
+            metadata: {
+              bookingNumber,
+              itemCount: pricedItems.length,
+            },
+          },
+        });
+
+        // d. Convert cart: delete items + mark cart as CONVERTED
+        await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+        await tx.cart.update({
+          where: { id: cart.id },
+          data: { status: 'CONVERTED', lastActivityAt: new Date() },
+        });
+
+        return booking;
+      });
+    } catch (err: any) {
+      this.logger.error(`[createBooking] Transaction failed for customer=${customerId}`, err?.stack);
+
+      // Prisma unique constraint violation → idempotency race condition
+      if (err?.code === 'P2002') {
+        const retryExisting = await this.prisma.booking.findUnique({
+          where: { idempotencyKey: dto.idempotencyKey },
+          include: { items: true },
+        });
+        if (retryExisting) {
+          return { alreadyCreated: true, ...formatBookingResponse(retryExisting) };
+        }
+      }
+
+      throw new InternalServerErrorException({
+        message: 'Your booking could not be created. Please try again.',
+        errorCode: 'BOOKING_CREATION_FAILED',
+      });
+    }
+
+    // Re-fetch with items relation included
+    const fullBooking = await this.prisma.booking.findUnique({
+      where: { id: newBooking.id },
+      include: { items: true },
+    });
+
+    this.logger.log(`[createBooking] SUCCESS. booking=${bookingNumber} customer=${customerId}`);
+
+    return formatBookingResponse(fullBooking);
+  }
+
+  // ─── List Bookings ──────────────────────────────────────────────────────────
+
+  async getBookings(
+    customerId: string,
+    filter?: {
+      status?: BookingStatus;
+      tab?: 'upcoming' | 'completed';
+    },
+  ) {
+    const where: any = { customerId };
+
+    if (filter?.status) {
+      where.status = filter.status;
+    } else if (filter?.tab === 'upcoming') {
+      where.status = {
+        in: [
+          'PENDING_MATCHING',
+          'TECHNICIAN_SEARCHING',
+          'TECHNICIAN_ASSIGNED',
+          'TECHNICIAN_ACCEPTED',
+          'TECHNICIAN_ON_THE_WAY',
+          'TECHNICIAN_ARRIVED',
+          'SERVICE_STARTED',
+          'SERVICE_COMPLETED',
+          'PAYMENT_PENDING',
+        ] as BookingStatus[],
+      };
+    } else if (filter?.tab === 'completed') {
+      where.status = {
+        in: ['COMPLETED', 'CANCELLED', 'FAILED'] as BookingStatus[],
+      };
+    }
+
+    const bookings = await this.prisma.booking.findMany({
+      where,
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return bookings.map(formatBookingResponse);
+  }
+
+  // ─── Get Booking By ID ──────────────────────────────────────────────────────
+
+  async getBookingById(customerId: string, bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        items: true,
+        statusHistory: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException({
+        message: 'Booking not found.',
+        errorCode: 'BOOKING_NOT_FOUND',
+      });
+    }
+
+    if (booking.customerId !== customerId) {
+      throw new ForbiddenException({
+        message: 'You do not have access to this booking.',
+        errorCode: 'BOOKING_ACCESS_DENIED',
+      });
+    }
+
+    return {
+      ...formatBookingResponse(booking),
+      statusHistory: booking.statusHistory.map((h: any) => ({
+        fromStatus: h.fromStatus,
+        toStatus: h.toStatus,
+        reason: h.reason,
+        createdAt: h.createdAt,
+      })),
+    };
+  }
+
+  // ─── Cancel Booking ─────────────────────────────────────────────────────────
+
+  async cancelBooking(customerId: string, bookingId: string, dto?: CancelBookingDto) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { items: true },
+    });
+
+    if (!booking) {
+      throw new NotFoundException({
+        message: 'Booking not found.',
+        errorCode: 'BOOKING_NOT_FOUND',
+      });
+    }
+
+    if (booking.customerId !== customerId) {
+      throw new ForbiddenException({
+        message: 'You do not have access to this booking.',
+        errorCode: 'BOOKING_ACCESS_DENIED',
+      });
+    }
+
+    if (!CANCELLABLE_STATUSES.includes(booking.status)) {
+      throw new ConflictException({
+        message: `Booking cannot be cancelled in status: ${booking.status}.`,
+        errorCode: 'BOOKING_CANNOT_CANCEL',
+      });
+    }
+
+    const previousStatus = booking.status;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
+          cancellationReason: dto?.reason ?? 'Cancelled by customer',
+        },
+      });
+
+      await tx.bookingStatusHistory.create({
+        data: {
+          bookingId,
+          fromStatus: previousStatus,
+          toStatus: 'CANCELLED',
+          changedBy: customerId,
+          changedByType: 'CUSTOMER',
+          reason: dto?.reason ?? 'Cancelled by customer',
+        },
+      });
+    });
+
+    this.logger.log(`[cancelBooking] booking=${booking.bookingNumber} cancelled by customer=${customerId}`);
+
+    const updated = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { items: true },
+    });
+
+    return formatBookingResponse(updated);
+  }
+}
