@@ -156,41 +156,28 @@ export class CartService {
         });
       }
 
-      const existingItem = await tx.cartItem.findUnique({
+      await tx.cartItem.upsert({
         where: {
           cartId_serviceId: {
             cartId: cart.id,
             serviceId: service.id,
           },
         },
+        create: {
+          cartId: cart.id,
+          serviceId: service.id,
+          quantity: qtyToAdd,
+          unitPrice,
+          lineTotal: unitPrice * qtyToAdd,
+          specialNotes: dto.specialNotes,
+        },
+        update: {
+          quantity: { increment: qtyToAdd },
+          unitPrice,
+          lineTotal: { increment: unitPrice * qtyToAdd },
+          specialNotes: dto.specialNotes ?? undefined,
+        },
       });
-
-      if (existingItem) {
-        const newQty = existingItem.quantity + qtyToAdd;
-        if (newQty > 10) {
-          throw new BadRequestException('Maximum quantity of 10 reached for this service');
-        }
-        await tx.cartItem.update({
-          where: { id: existingItem.id },
-          data: {
-            quantity: newQty,
-            unitPrice,
-            lineTotal: unitPrice * newQty,
-            specialNotes: dto.specialNotes ?? existingItem.specialNotes,
-          },
-        });
-      } else {
-        await tx.cartItem.create({
-          data: {
-            cartId: cart.id,
-            serviceId: service.id,
-            quantity: qtyToAdd,
-            unitPrice,
-            lineTotal: unitPrice * qtyToAdd,
-            specialNotes: dto.specialNotes,
-          },
-        });
-      }
 
       await tx.cart.update({
         where: { id: cart.id },
@@ -216,28 +203,30 @@ export class CartService {
 
   /**
    * Update item quantity in active cart.
+   * Resilient: accepts either cartItem.id OR serviceId.
    */
-  async updateCartItem(customerId: string, cartItemId: string, dto: UpdateCartItemDto) {
-    const item = await this.prisma.cartItem.findUnique({
-      where: { id: cartItemId },
-      include: { cart: true, service: true },
-    });
+  async updateCartItem(customerId: string, cartItemIdOrServiceId: string, dto: UpdateCartItemDto) {
+    const activeCart = await this.getOrCreateActiveCart(customerId);
 
-    if (!item || item.cart.customerId !== customerId || item.cart.status !== 'ACTIVE') {
+    const item = (activeCart.items || []).find(
+      (i: any) => i.id === cartItemIdOrServiceId || i.serviceId === cartItemIdOrServiceId,
+    );
+
+    if (!item) {
       throw new NotFoundException('Cart item not found in active cart');
     }
 
-    if (dto.expectedVersion !== undefined && item.cart.version !== dto.expectedVersion) {
+    if (dto.expectedVersion !== undefined && activeCart.version !== dto.expectedVersion) {
       throw new ConflictException('Cart version conflict. Please retry.');
     }
 
-    const unitPrice = item.service.discountPrice ?? item.service.price;
+    const unitPrice = item.service?.discountPrice ?? item.service?.price ?? item.unitPrice;
     const newQty = dto.quantity;
     const lineTotal = unitPrice * newQty;
 
     return this.prisma.$transaction(async (tx) => {
-      await tx.cartItem.update({
-        where: { id: cartItemId },
+      await tx.cartItem.updateMany({
+        where: { id: item.id },
         data: {
           quantity: newQty,
           unitPrice,
@@ -246,7 +235,7 @@ export class CartService {
       });
 
       await tx.cart.update({
-        where: { id: item.cartId },
+        where: { id: activeCart.id },
         data: {
           version: { increment: 1 },
           lastActivityAt: new Date(),
@@ -254,7 +243,7 @@ export class CartService {
       });
 
       const updatedCart = await tx.cart.findUnique({
-        where: { id: item.cartId },
+        where: { id: activeCart.id },
         include: {
           items: {
             include: { service: true },
@@ -269,24 +258,25 @@ export class CartService {
 
   /**
    * Remove item from active cart.
+   * Resilient: accepts either cartItem.id OR serviceId.
+   * Idempotent & Race-Condition Safe: returns active cart formatted cleanly if item was already removed (200 OK).
    */
-  async removeCartItem(customerId: string, cartItemId: string) {
-    const item = await this.prisma.cartItem.findUnique({
-      where: { id: cartItemId },
-      include: { cart: true },
-    });
-
-    if (!item || item.cart.customerId !== customerId || item.cart.status !== 'ACTIVE') {
-      throw new NotFoundException('Cart item not found');
-    }
+  async removeCartItem(customerId: string, cartItemIdOrServiceId: string) {
+    const activeCart = await this.getOrCreateActiveCart(customerId);
 
     return this.prisma.$transaction(async (tx) => {
-      await tx.cartItem.delete({
-        where: { id: cartItemId },
+      await tx.cartItem.deleteMany({
+        where: {
+          cartId: activeCart.id,
+          OR: [
+            { id: cartItemIdOrServiceId },
+            { serviceId: cartItemIdOrServiceId },
+          ],
+        },
       });
 
       await tx.cart.update({
-        where: { id: item.cartId },
+        where: { id: activeCart.id },
         data: {
           version: { increment: 1 },
           lastActivityAt: new Date(),
@@ -294,7 +284,7 @@ export class CartService {
       });
 
       const updatedCart = await tx.cart.findUnique({
-        where: { id: item.cartId },
+        where: { id: activeCart.id },
         include: {
           items: {
             include: { service: true },

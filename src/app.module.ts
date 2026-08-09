@@ -14,6 +14,7 @@ import { StorageModule } from './infrastructure/storage/storage.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { CartModule } from './modules/cart/cart.module';
 import { TechniciansModule } from './modules/technicians/technicians.module';
+import { AddressesModule } from './modules/addresses/addresses.module';
 
 import configuration from './config/configuration';
 
@@ -42,6 +43,7 @@ import configuration from './config/configuration';
     CatalogModule,
     CartModule,
     TechniciansModule,
+    AddressesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -38,6 +38,7 @@ model User {
   customerProfile CustomerProfile?
   technicianProfile TechnicianProfile?
   carts          Cart[]
+  addresses      CustomerAddress[]
 
   @@index([phone])
   @@index([role])
@@ -260,3 +261,27 @@ model CartItem {
   @@index([serviceId])
   @@map("cart_items")
 }
+
+model CustomerAddress {
+  id              String   @id @default(cuid())
+  customerId      String
+  label           String   @default("Home")
+  completeAddress String
+  landmark        String?
+  city            String?  @default("Ahmedabad")
+  state           String?  @default("Gujarat")
+  postalCode      String?
+  latitude        Float?
+  longitude       Float?
+  isDefault       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  customer        User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, label])
+  @@index([customerId])
+  @@index([customerId, isDefault])
+  @@map("customer_addresses")
+}
+
