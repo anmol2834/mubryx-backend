@@ -37,6 +37,7 @@ model User {
   refreshTokens  RefreshToken[]
   customerProfile CustomerProfile?
   technicianProfile TechnicianProfile?
+  carts          Cart[]
 
   @@index([phone])
   @@index([role])
@@ -151,4 +152,52 @@ model Service {
   tagBg         String?
   tagColor      String?
   Category      Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  cartItems     CartItem[]
+}
+
+enum CartStatus {
+  ACTIVE
+  CHECKOUT_STARTED
+  CONVERTED
+  ABANDONED
+  EXPIRED
+}
+
+model Cart {
+  id             String      @id @default(cuid())
+  customerId     String
+  status         CartStatus  @default(ACTIVE)
+  currency       String      @default("INR")
+  version        Int         @default(1)
+  lastActivityAt DateTime    @default(now())
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  customer       User        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items          CartItem[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([customerId, status])
+  @@map("carts")
+}
+
+model CartItem {
+  id           String   @id @default(cuid())
+  cartId       String
+  serviceId    String
+  quantity     Int      @default(1)
+  unitPrice    Float
+  lineTotal    Float
+  specialNotes String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  cart         Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  service      Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, serviceId])
+  @@index([cartId])
+  @@index([serviceId])
+  @@map("cart_items")
 }

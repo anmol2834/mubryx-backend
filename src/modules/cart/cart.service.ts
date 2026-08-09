@@ -1,0 +1,371 @@
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { AddCartItemDto } from './dto/add-cart-item.dto';
+import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import { MergeCartDto } from './dto/merge-cart.dto';
+
+@Injectable()
+export class CartService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Formats a Cart database record into a canonical response structure.
+   */
+  private formatCartResponse(cart: any) {
+    const items = (cart.items || []).map((item: any) => {
+      const uPrice = item.unitPrice ?? item.service?.price ?? 0;
+      const lTotal = item.lineTotal ?? (uPrice * item.quantity);
+      return {
+        id: item.id,
+        cartId: item.cartId,
+        serviceId: item.serviceId,
+        quantity: item.quantity,
+        unitPrice: uPrice,
+        lineTotal: lTotal,
+        specialNotes: item.specialNotes ?? null,
+        pricing: {
+          listPrice: item.service?.price ?? uPrice,
+          unitPrice: uPrice,
+          lineTotal: lTotal,
+        },
+        service: item.service
+          ? {
+              id: item.service.id,
+              title: item.service.title,
+              description: item.service.description,
+              price: item.service.price,
+              discountPrice: item.service.discountPrice ?? null,
+              image: item.service.image ?? null,
+              duration: item.service.duration ?? '45 mins',
+            }
+          : {
+              id: item.serviceId,
+              title: 'Service',
+              description: '',
+              price: uPrice,
+            },
+      };
+    });
+
+    const itemCount = items.reduce((sum: number, i: any) => sum + i.quantity, 0);
+    const subtotal = items.reduce((sum: number, i: any) => sum + i.lineTotal, 0);
+    const tax = Math.round(subtotal * 0.05);
+    const platformFee = items.length > 0 ? 49 : 0;
+    const total = subtotal + tax + platformFee;
+
+    return {
+      id: cart.id,
+      cartId: cart.id,
+      customerId: cart.customerId,
+      status: cart.status,
+      currency: cart.currency,
+      version: cart.version,
+      lastActivityAt: cart.lastActivityAt,
+      items,
+      itemCount,
+      summary: {
+        subtotal,
+        discount: 0,
+        taxableAmount: subtotal,
+        tax,
+        platformFee,
+        total,
+      },
+    };
+  }
+
+  /**
+   * Internal helper to find or create the single ACTIVE cart for a customer.
+   */
+  async getOrCreateActiveCart(customerId: string) {
+    if (!customerId) {
+      throw new BadRequestException('Customer ID is required to access cart');
+    }
+
+    let cart = await this.prisma.cart.findFirst({
+      where: { customerId, status: 'ACTIVE' },
+      include: {
+        items: {
+          include: { service: true },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    if (!cart) {
+      cart = await this.prisma.cart.create({
+        data: {
+          customerId,
+          status: 'ACTIVE',
+          currency: 'INR',
+          version: 1,
+        },
+        include: {
+          items: {
+            include: { service: true },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      });
+    }
+
+    return this.formatCartResponse(cart);
+  }
+
+  /**
+   * Get current active cart for customer.
+   */
+  async getCart(customerId: string) {
+    return this.getOrCreateActiveCart(customerId);
+  }
+
+  /**
+   * Add item to active cart (Server authoritative pricing from PostgreSQL Service table).
+   */
+  async addCartItem(customerId: string, dto: AddCartItemDto) {
+    const service = await this.prisma.service.findUnique({
+      where: { id: dto.serviceId },
+    });
+
+    if (!service || !service.isActive) {
+      throw new NotFoundException('Service not available or does not exist');
+    }
+
+    const unitPrice = service.discountPrice ?? service.price;
+    const qtyToAdd = dto.quantity ?? 1;
+
+    return this.prisma.$transaction(async (tx) => {
+      let cart = await tx.cart.findFirst({
+        where: { customerId, status: 'ACTIVE' },
+      });
+
+      if (!cart) {
+        cart = await tx.cart.create({
+          data: {
+            customerId,
+            status: 'ACTIVE',
+            currency: 'INR',
+            version: 1,
+          },
+        });
+      }
+
+      const existingItem = await tx.cartItem.findUnique({
+        where: {
+          cartId_serviceId: {
+            cartId: cart.id,
+            serviceId: service.id,
+          },
+        },
+      });
+
+      if (existingItem) {
+        const newQty = existingItem.quantity + qtyToAdd;
+        if (newQty > 10) {
+          throw new BadRequestException('Maximum quantity of 10 reached for this service');
+        }
+        await tx.cartItem.update({
+          where: { id: existingItem.id },
+          data: {
+            quantity: newQty,
+            unitPrice,
+            lineTotal: unitPrice * newQty,
+            specialNotes: dto.specialNotes ?? existingItem.specialNotes,
+          },
+        });
+      } else {
+        await tx.cartItem.create({
+          data: {
+            cartId: cart.id,
+            serviceId: service.id,
+            quantity: qtyToAdd,
+            unitPrice,
+            lineTotal: unitPrice * qtyToAdd,
+            specialNotes: dto.specialNotes,
+          },
+        });
+      }
+
+      await tx.cart.update({
+        where: { id: cart.id },
+        data: {
+          version: { increment: 1 },
+          lastActivityAt: new Date(),
+        },
+      });
+
+      const updatedCart = await tx.cart.findUnique({
+        where: { id: cart.id },
+        include: {
+          items: {
+            include: { service: true },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      });
+
+      return this.formatCartResponse(updatedCart);
+    });
+  }
+
+  /**
+   * Update item quantity in active cart.
+   */
+  async updateCartItem(customerId: string, cartItemId: string, dto: UpdateCartItemDto) {
+    const item = await this.prisma.cartItem.findUnique({
+      where: { id: cartItemId },
+      include: { cart: true, service: true },
+    });
+
+    if (!item || item.cart.customerId !== customerId || item.cart.status !== 'ACTIVE') {
+      throw new NotFoundException('Cart item not found in active cart');
+    }
+
+    if (dto.expectedVersion !== undefined && item.cart.version !== dto.expectedVersion) {
+      throw new ConflictException('Cart version conflict. Please retry.');
+    }
+
+    const unitPrice = item.service.discountPrice ?? item.service.price;
+    const newQty = dto.quantity;
+    const lineTotal = unitPrice * newQty;
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.cartItem.update({
+        where: { id: cartItemId },
+        data: {
+          quantity: newQty,
+          unitPrice,
+          lineTotal,
+        },
+      });
+
+      await tx.cart.update({
+        where: { id: item.cartId },
+        data: {
+          version: { increment: 1 },
+          lastActivityAt: new Date(),
+        },
+      });
+
+      const updatedCart = await tx.cart.findUnique({
+        where: { id: item.cartId },
+        include: {
+          items: {
+            include: { service: true },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      });
+
+      return this.formatCartResponse(updatedCart);
+    });
+  }
+
+  /**
+   * Remove item from active cart.
+   */
+  async removeCartItem(customerId: string, cartItemId: string) {
+    const item = await this.prisma.cartItem.findUnique({
+      where: { id: cartItemId },
+      include: { cart: true },
+    });
+
+    if (!item || item.cart.customerId !== customerId || item.cart.status !== 'ACTIVE') {
+      throw new NotFoundException('Cart item not found');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.cartItem.delete({
+        where: { id: cartItemId },
+      });
+
+      await tx.cart.update({
+        where: { id: item.cartId },
+        data: {
+          version: { increment: 1 },
+          lastActivityAt: new Date(),
+        },
+      });
+
+      const updatedCart = await tx.cart.findUnique({
+        where: { id: item.cartId },
+        include: {
+          items: {
+            include: { service: true },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      });
+
+      return this.formatCartResponse(updatedCart);
+    });
+  }
+
+  /**
+   * Clear all items from customer's active cart.
+   */
+  async clearCart(customerId: string) {
+    const cart = await this.prisma.cart.findFirst({
+      where: { customerId, status: 'ACTIVE' },
+    });
+
+    if (!cart) {
+      return this.getOrCreateActiveCart(customerId);
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.cartItem.deleteMany({
+        where: { cartId: cart.id },
+      });
+
+      await tx.cart.update({
+        where: { id: cart.id },
+        data: {
+          version: { increment: 1 },
+          lastActivityAt: new Date(),
+        },
+      });
+
+      const updatedCart = await tx.cart.findUnique({
+        where: { id: cart.id },
+        include: {
+          items: {
+            include: { service: true },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      });
+
+      return this.formatCartResponse(updatedCart);
+    });
+  }
+
+  /**
+   * Merge guest cart selections into active customer cart upon login/signup.
+   */
+  async mergeGuestCart(customerId: string, dto: MergeCartDto) {
+    if (!dto.items || dto.items.length === 0) {
+      return this.getOrCreateActiveCart(customerId);
+    }
+
+    for (const item of dto.items) {
+      try {
+        await this.addCartItem(customerId, {
+          serviceId: item.serviceId,
+          quantity: item.quantity ?? 1,
+          specialNotes: item.specialNotes,
+        });
+      } catch {
+        // Skip individual invalid items gracefully during merge
+      }
+    }
+
+    return this.getOrCreateActiveCart(customerId);
+  }
+}
