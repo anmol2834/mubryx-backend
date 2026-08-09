@@ -1,8 +1,6 @@
 import { Injectable, OnModuleDestroy, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
-const RedisMock = require('ioredis-mock');
-
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
@@ -16,6 +14,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     
     if (url === 'mock') {
       this.logger.warn('Using ioredis-mock because REDIS_URL is mock');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const RedisMock = require('ioredis-mock');
       this.client = new (RedisMock as any)();
     } else {
       this.client = new Redis(url as string, {
