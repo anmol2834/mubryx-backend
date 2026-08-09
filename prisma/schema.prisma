@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CUSTOMER
+  TECHNICIAN
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum OnboardingStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  email     String?  @unique
+  name      String?
+  role      UserRole @default(CUSTOMER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions       Session[]
+  refreshTokens  RefreshToken[]
+  customerProfile CustomerProfile?
+  technicianProfile TechnicianProfile?
+
+  @@index([phone])
+  @@index([role])
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  deviceInfo   String?
+  ipAddress    String?
+  userAgent    String?
+  isActive     Boolean  @default(true)
+  lastActiveAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken RefreshToken?
+
+  @@index([userId])
+  @@index([isActive])
+  @@map("sessions")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  sessionId String   @unique
+  userId    String
+  tokenHash String   @unique
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model CustomerProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("customer_profiles")
+}
+
+model TechnicianProfile {
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  onboardingStatus OnboardingStatus @default(DRAFT)
+  bio              String?
+  experienceYears  Int?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([onboardingStatus])
+  @@map("technician_profiles")
+}
+
+enum CategoryPlacement {
+  QUICK_SERVICE
+  APPLIANCE
+  NONE
+}
+
+model Category {
+  id                String              @id @default(cuid())
+  name              String
+  slug              String              @unique
+  icon              String?
+  image             String?
+  description       String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  bgColor           String?
+  displayOrder      Int                 @default(0)
+  iconBg            String?
+  iconColor         String?
+  placement         CategoryPlacement   @default(NONE)
+  Service           Service[]
+}
+
+model Service {
+  id            String        @id @default(cuid())
+  categoryId    String
+  title         String
+  description   String
+  price         Float
+  discountPrice Float?
+  rating        Float         @default(4.8)
+  reviewCount   Int           @default(0)
+  duration      String        @default("45 mins")
+  image         String?
+  features      String[]      @default([])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+  iconBg        String?
+  iconColor     String?
+  isActive      Boolean       @default(true)
+  isPopular     Boolean       @default(false)
+  svgType       String?
+  tag           String?
+  tagBg         String?
+  tagColor      String?
+  Category      Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
