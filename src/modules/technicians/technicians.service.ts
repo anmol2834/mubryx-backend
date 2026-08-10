@@ -101,7 +101,7 @@ export class TechniciansService {
   }
 
   async getProfile(userId: string) {
-    const profile = await this.prisma.technicianProfile.findUnique({
+    let profile = await this.prisma.technicianProfile.findUnique({
       where: { userId },
       include: {
         documents: true,
@@ -111,7 +111,23 @@ export class TechniciansService {
     });
 
     if (!profile) {
-      throw new BadRequestException('Technician profile not found');
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      profile = await this.prisma.technicianProfile.create({
+        data: {
+          userId: user.id,
+          fullName: user.name,
+          onboardingStatus: 'DRAFT',
+        },
+        include: {
+          documents: true,
+          experiences: true,
+          skills: true,
+        },
+      });
     }
 
     return profile;
