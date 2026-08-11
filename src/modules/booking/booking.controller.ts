@@ -11,6 +11,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { BookingService } from './booking.service';
+import { AssignmentService } from './assignment.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -25,7 +26,10 @@ function getCustomerId(user: any): string {
 @Controller('bookings')
 @UseGuards(JwtAuthGuard)
 export class BookingController {
-  constructor(private readonly bookingService: BookingService) {}
+  constructor(
+    private readonly bookingService: BookingService,
+    private readonly assignmentService: AssignmentService,
+  ) {}
 
   /**
    * POST /bookings
@@ -86,5 +90,33 @@ export class BookingController {
   ) {
     const customerId = getCustomerId(user);
     return this.bookingService.cancelBooking(customerId, id, dto);
+  }
+
+  /**
+   * POST /bookings/:id/accept
+   * Technician accepts a dispatched booking.
+   */
+  @Post(':id/accept')
+  @HttpCode(HttpStatus.OK)
+  async acceptBooking(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    const technicianUserId = getCustomerId(user);
+    return this.assignmentService.acceptBooking(technicianUserId, id);
+  }
+
+  /**
+   * POST /bookings/:id/reject
+   * Technician rejects a dispatched booking.
+   */
+  @Post(':id/reject')
+  @HttpCode(HttpStatus.OK)
+  async rejectBooking(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    const technicianUserId = getCustomerId(user);
+    return this.assignmentService.rejectBooking(technicianUserId, id);
   }
 }

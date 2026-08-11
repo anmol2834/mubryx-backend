@@ -92,13 +92,22 @@ function formatBookingResponse(booking: any) {
   };
 }
 
+import { RealtimeService } from '../../realtime/services/realtime.service';
+import { REALTIME_EVENTS } from '../../realtime/constants/realtime-events.constant';
+
+import { DispatchService } from './dispatch.service';
+
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 @Injectable()
 export class BookingService {
   private readonly logger = new Logger(BookingService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtimeService: RealtimeService,
+    private readonly dispatchService: DispatchService,
+  ) {}
 
   // ─── Create Booking ─────────────────────────────────────────────────────────
 
@@ -337,7 +346,31 @@ export class BookingService {
 
     this.logger.log(`[createBooking] SUCCESS. booking=${bookingNumber} customer=${customerId}`);
 
-    return formatBookingResponse(fullBooking);
+    const formatted = formatBookingResponse(fullBooking);
+
+    // Emit real-time event after DB transaction successfully commits
+    this.realtimeService.emitBookingEvent(newBooking.id, REALTIME_EVENTS.BOOKING.CREATED, {
+      bookingId: newBooking.id,
+      bookingNumber: newBooking.bookingNumber,
+      customerId: newBooking.customerId,
+      status: newBooking.status,
+      totalAmount: newBooking.totalAmount,
+      serviceAddress: {
+        label: newBooking.snapshotLabel,
+        completeAddress: newBooking.snapshotAddress,
+        city: newBooking.snapshotCity,
+        latitude: newBooking.serviceLatitude,
+        longitude: newBooking.serviceLongitude,
+      },
+      updatedAt: newBooking.updatedAt.toISOString(),
+    });
+
+    // Fire and forget dispatch engine
+    this.dispatchService.dispatchBooking(newBooking.id).catch((err) => {
+      this.logger.error(`[createBooking] Dispatch engine failed for booking=${newBooking.id}`, err?.stack);
+    });
+
+    return formatted;
   }
 
   // ─── List Bookings ──────────────────────────────────────────────────────────
@@ -479,6 +512,19 @@ export class BookingService {
       include: { items: true },
     });
 
-    return formatBookingResponse(updated);
+    const formatted = formatBookingResponse(updated);
+
+    // Emit real-time cancellation event after DB transaction commits
+    this.realtimeService.emitBookingEvent(bookingId, REALTIME_EVENTS.BOOKING.CANCELLED, {
+      bookingId,
+      bookingNumber: booking.bookingNumber,
+      customerId: booking.customerId,
+      technicianId: booking.technicianId,
+      status: 'CANCELLED',
+      previousStatus,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return formatted;
   }
 }

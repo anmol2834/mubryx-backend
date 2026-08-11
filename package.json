@@ -37,9 +37,11 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-fastify": "^11.1.10",
+    "@nestjs/platform-socket.io": "^11.1.29",
     "@nestjs/swagger": "^11.4.5",
     "@nestjs/terminus": "^11.1.1",
     "@nestjs/throttler": "^6.5.0",
+    "@nestjs/websockets": "^11.1.29",
     "@paralleldrive/cuid2": "^3.3.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
@@ -62,7 +64,8 @@
     "pino-http": "^11.0.0",
     "prisma": "^7.9.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

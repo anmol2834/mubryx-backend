@@ -25,6 +25,16 @@ export class UpdateBasicInfoDto {
   @IsOptional()
   @IsString()
   bio?: string;
+
+  @IsOptional()
+  @IsString()
+  currentState?: string;
+
+  @IsOptional()
+  latitude?: number;
+
+  @IsOptional()
+  longitude?: number;
 }
 
 export class UpdateSkillsDto {
@@ -63,4 +73,17 @@ export class UpdateExperienceDto {
   @IsOptional()
   @IsArray()
   history?: ExperienceItemDto[];
+}
+
+export class UpdateStatusDto {
+  @IsString()
+  status!: 'online' | 'offline';
+}
+
+export class UpdateLocationDto {
+  @IsOptional()
+  latitude?: number;
+
+  @IsOptional()
+  longitude?: number;
 }

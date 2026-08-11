@@ -18,6 +18,8 @@ import {
   UpdateBasicInfoDto,
   UpdateSkillsDto,
   UpdateExperienceDto,
+  UpdateStatusDto,
+  UpdateLocationDto,
 } from './dto/onboarding.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -152,5 +154,54 @@ export class TechniciansController {
   async submitApplication(@CurrentUser() user: any) {
     const userId = getUserIdFromUser(user);
     return this.techniciansService.submitApplication(userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch('status')
+  @ApiOperation({ summary: 'Update technician online/offline status' })
+  async updateStatus(@CurrentUser() user: any, @Body() dto: UpdateStatusDto) {
+    const userId = getUserIdFromUser(user);
+    return this.techniciansService.updateStatus(userId, dto.status === 'online');
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch('location')
+  @ApiOperation({ summary: 'Update technician GPS location' })
+  async updateLocation(@CurrentUser() user: any, @Body() dto: UpdateLocationDto) {
+    const userId = getUserIdFromUser(user);
+    if (dto.latitude === undefined || dto.longitude === undefined) {
+      throw new BadRequestException('Latitude and longitude are required');
+    }
+    return this.techniciansService.updateLocation(userId, dto.latitude, dto.longitude);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('nearby-leads')
+  @ApiOperation({ summary: 'Get nearby incoming bookings for technician' })
+  async getNearbyLeads(@CurrentUser() user: any) {
+    const userId = getUserIdFromUser(user);
+    return this.techniciansService.getNearbyLeads(userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('notifications')
+  @ApiOperation({ summary: 'Get notifications for technician' })
+  async getNotifications(@CurrentUser() user: any) {
+    const userId = getUserIdFromUser(user);
+    return this.techniciansService.getNotifications(userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch('notifications/:id/read')
+  @ApiOperation({ summary: 'Mark notification as read' })
+  async markNotificationRead(@CurrentUser() user: any, @Req() req: FastifyRequest) {
+    const userId = getUserIdFromUser(user);
+    const notificationId = (req.params as any).id;
+    return this.techniciansService.markNotificationRead(userId, notificationId);
   }
 }

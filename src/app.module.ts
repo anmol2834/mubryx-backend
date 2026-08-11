@@ -17,6 +17,8 @@ import { TechniciansModule } from './modules/technicians/technicians.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
 import { BookingModule } from './modules/booking/booking.module';
 
+import { RealtimeModule } from './realtime/realtime.module';
+
 import configuration from './config/configuration';
 
 @Module({
@@ -38,6 +40,7 @@ import configuration from './config/configuration';
     PrismaModule,
     RedisModule,
     StorageModule,
+    RealtimeModule,
     HealthModule,
     UsersModule,
     AuthModule,

@@ -26,17 +26,11 @@ export class AuthController {
 
   @Post('refresh')
   async refresh(
-    @Body() body: { token?: string },
+    @Body() body: { token?: string } | undefined,
     @Headers('authorization') authHeader: string,
     @Headers('user-agent') userAgent: string,
   ) {
-    // Some frontend clients might send refresh token in body, or some as Bearer. 
-    // Usually it's in body or a custom header. 
-    // The frontend authService calls: 
-    // apiFetch('auth/refresh', { method: 'POST', token: refreshToken })
-    // apiFetch puts token in Bearer Authorization header!
-    
-    let token = body.token;
+    let token = body?.token;
     if (!token && authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1];
     }

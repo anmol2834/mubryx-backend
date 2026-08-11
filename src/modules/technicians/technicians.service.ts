@@ -336,4 +336,77 @@ export class TechniciansService {
       },
     });
   }
+
+  async updateStatus(userId: string, isOnline: boolean) {
+    const profile = await this.getProfile(userId);
+    if (!profile) throw new BadRequestException('Technician profile not found');
+
+    return this.prisma.technicianProfile.update({
+      where: { userId },
+      data: { isOnline },
+    });
+  }
+
+  async updateLocation(userId: string, latitude: number, longitude: number) {
+    const profile = await this.getProfile(userId);
+    if (!profile) throw new BadRequestException('Technician profile not found');
+
+    return this.prisma.technicianProfile.update({
+      where: { userId },
+      data: {
+        latitude,
+        longitude,
+        lastLocationUpdatedAt: new Date(),
+      },
+    });
+  }
+
+  async getNearbyLeads(userId: string) {
+    const profile = await this.getProfile(userId);
+    if (!profile) throw new BadRequestException('Technician profile not found');
+
+    const dispatches = await this.prisma.bookingDispatch.findMany({
+      where: {
+        technicianId: profile.id,
+        status: 'OFFERED',
+        expiresAt: { gt: new Date() },
+        booking: { status: 'TECHNICIAN_SEARCHING' }
+      },
+      include: {
+        booking: {
+          include: {
+            customer: {
+              select: { name: true, phone: true }
+            },
+            items: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return dispatches;
+  }
+
+  async getNotifications(userId: string) {
+    return this.prisma.notification.findMany({
+      where: { recipientId: userId },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async markNotificationRead(userId: string, notificationId: string) {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId }
+    });
+    
+    if (!notification || notification.recipientId !== userId) {
+      throw new BadRequestException('Notification not found');
+    }
+
+    return this.prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: true }
+    });
+  }
 }
