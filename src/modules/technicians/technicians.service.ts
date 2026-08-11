@@ -369,7 +369,6 @@ export class TechniciansService {
       where: {
         technicianId: profile.id,
         status: 'OFFERED',
-        expiresAt: { gt: new Date() },
         booking: { status: 'TECHNICIAN_SEARCHING' }
       },
       include: {

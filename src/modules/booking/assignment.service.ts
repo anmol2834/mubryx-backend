@@ -40,9 +40,8 @@ export class AssignmentService {
       throw new ConflictException(`This offer is no longer valid (status: ${dispatch.status})`);
     }
 
-    if (new Date() > dispatch.expiresAt) {
-      throw new ConflictException('This offer has expired');
-    }
+    // Removing expiration check to allow accepting from notification/nearby anytime
+    // as long as the booking itself is still available
 
     // Atomic transaction
     const result = await this.prisma.$transaction(async (tx) => {
