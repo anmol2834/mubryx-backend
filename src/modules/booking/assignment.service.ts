@@ -1,6 +1,7 @@
 import { Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RealtimeService } from '../../realtime/services/realtime.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AssignmentService {
@@ -9,6 +10,7 @@ export class AssignmentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtimeService: RealtimeService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async acceptBooking(userId: string, bookingId: string) {
@@ -114,6 +116,16 @@ export class AssignmentService {
         bookingId,
         reason: d.status === 'ACCEPTED' ? 'ACCEPTED_BY_YOU' : 'ASSIGNED_TO_OTHER',
       });
+      
+      if (d.status !== 'ACCEPTED') {
+        // Silently send background push to cancel the alarm on other devices
+        this.notificationsService.sendBookingUpdate(
+          d.technician.user.id,
+          'Booking Assigned',
+          'This booking has been assigned to another technician.',
+          { type: 'booking:no-longer-available', bookingId }
+        );
+      }
     }
 
     // Delete the incoming booking notifications for ALL technicians to clear their feeds

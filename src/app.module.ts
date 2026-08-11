@@ -18,6 +18,7 @@ import { AddressesModule } from './modules/addresses/addresses.module';
 import { BookingModule } from './modules/booking/booking.module';
 
 import { RealtimeModule } from './realtime/realtime.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 import configuration from './config/configuration';
 
@@ -49,6 +50,7 @@ import configuration from './config/configuration';
     TechniciansModule,
     AddressesModule,
     BookingModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -51,6 +51,7 @@ model User {
   addresses         CustomerAddress[]
   bookings          Booking[]
   notifications     Notification[]
+  pushTokens        DevicePushToken[]
 
   @@index([phone])
   @@index([role])
@@ -497,4 +498,21 @@ model Notification {
   @@index([isRead])
   @@index([createdAt])
   @@map("notifications")
+}
+
+model DevicePushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  pushToken String   @unique
+  deviceId  String?
+  platform  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([pushToken])
+  @@map("device_push_tokens")
 }

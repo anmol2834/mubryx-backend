@@ -24,6 +24,8 @@ function deg2rad(deg: number) {
   return deg * (Math.PI / 180);
 }
 
+import { NotificationsService } from '../notifications/notifications.service';
+
 @Injectable()
 export class DispatchService {
   private readonly logger = new Logger(DispatchService.name);
@@ -31,6 +33,7 @@ export class DispatchService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtimeService: RealtimeService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async dispatchBooking(bookingId: string) {
@@ -163,6 +166,9 @@ export class DispatchService {
 
       // Emit real-time incoming booking to this specific technician via userId
       this.realtimeService.emitToTechnician(match.tech.user.id, 'booking:incoming', payload);
+      
+      // Dispatch OS push notification for background delivery
+      this.notificationsService.sendBookingRequest(match.tech.user.id, payload);
       
       this.logger.log(`[DispatchService] Emitted booking:incoming to techId=${match.tech.id} userId=${match.tech.user.id} (${match.distance.toFixed(1)}km)`);
     }
