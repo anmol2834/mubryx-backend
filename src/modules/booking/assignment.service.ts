@@ -62,6 +62,7 @@ export class AssignmentService {
           status: 'TECHNICIAN_ASSIGNED',
           technicianId: technician.id,
           assignedAt: new Date(),
+          acceptedAt: new Date(),
         },
       });
 
@@ -116,12 +117,11 @@ export class AssignmentService {
       });
     }
 
-    // Delete the incoming booking notifications for ALL technicians except the one who accepted
+    // Delete the incoming booking notifications for ALL technicians to clear their feeds
     await this.prisma.notification.deleteMany({
       where: {
         bookingId,
         type: 'booking:incoming',
-        recipientId: { not: technician.user.id },
       },
     });
 

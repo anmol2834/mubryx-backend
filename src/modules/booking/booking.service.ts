@@ -25,6 +25,8 @@ const CANCELLABLE_STATUSES: BookingStatus[] = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+import * as crypto from 'crypto';
+
 function generateBookingNumber(): string {
   const now = new Date();
   const yyyy = now.getFullYear();
@@ -33,6 +35,10 @@ function generateBookingNumber(): string {
   // 5-digit random suffix (10000–99999)
   const seq = String(Math.floor(Math.random() * 90000) + 10000);
   return `MBX-${yyyy}${mm}${dd}-${seq}`;
+}
+
+function generateOTP(): string {
+  return crypto.randomInt(1000, 10000).toString();
 }
 
 function calculatePricing(items: Array<{ unitPrice: number; quantity: number }>) {
@@ -85,6 +91,7 @@ function formatBookingResponse(booking: any) {
     },
     customerNotes: booking.customerNotes ?? null,
     technicianId: booking.technicianId ?? null,
+    otp: booking.otp ?? null,
     cancelledAt: booking.cancelledAt ?? null,
     cancellationReason: booking.cancellationReason ?? null,
     createdAt: booking.createdAt,
@@ -278,6 +285,7 @@ export class BookingService {
             platformFee: pricing.platformFee,
             totalAmount: pricing.totalAmount,
             couponCode: dto.couponCode ?? null,
+            otp: generateOTP(),
 
             // Notes
             customerNotes: dto.notes ?? null,

@@ -123,10 +123,28 @@ export class DispatchService {
 
       const payload = {
         bookingId: booking.id,
+        bookingNumber: booking.bookingNumber,
+        status: booking.status,
+        bookingType: booking.bookingType,
+        scheduledAt: booking.scheduledAt,
+        serviceLocation: {
+          latitude: booking.serviceLatitude,
+          longitude: booking.serviceLongitude,
+          address: booking.snapshotAddress,
+          landmark: booking.snapshotLandmark,
+          city: booking.snapshotCity
+        },
         dispatchId: dispatch.id,
         serviceSummary: serviceTitles,
         customerArea: booking.snapshotCity || 'Nearby',
         distanceKm: Number(match.distance.toFixed(1)),
+        pricing: {
+          subtotal: booking.subtotal,
+          discount: booking.discount,
+          tax: booking.tax,
+          platformFee: booking.platformFee,
+          totalAmount: booking.totalAmount,
+        },
         totalAmount: booking.totalAmount,
         expiresAt: expiresAt.toISOString(),
       };

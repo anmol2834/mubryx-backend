@@ -392,6 +392,7 @@ model Booking {
   platformFee Float
   totalAmount Float
   couponCode  String?
+  otp         String?
 
   // Notes
   customerNotes String?

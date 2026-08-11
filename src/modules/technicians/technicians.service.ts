@@ -389,10 +389,48 @@ export class TechniciansService {
   }
 
   async getNotifications(userId: string) {
-    return this.prisma.notification.findMany({
+    // 1. Proactively auto-clean stale incoming booking notifications
+    const allNotifications = await this.prisma.notification.findMany({
       where: { recipientId: userId },
       orderBy: { createdAt: 'desc' }
     });
+
+    const incomingBookingNotifs = allNotifications.filter(n => n.type === 'booking:incoming' && n.bookingId);
+    
+    if (incomingBookingNotifs.length > 0) {
+      const bookingIds = incomingBookingNotifs.map(n => n.bookingId as string);
+      
+      // Fetch the current status of these bookings
+      const bookings = await this.prisma.booking.findMany({
+        where: {
+          id: { in: bookingIds }
+        },
+        select: { id: true, status: true }
+      });
+
+      const activeBookingIds = new Set(
+        bookings
+          .filter(b => b.status === 'TECHNICIAN_SEARCHING' || b.status === 'PENDING_MATCHING')
+          .map(b => b.id)
+      );
+
+      // Identify stale notifications
+      const staleNotifIds = incomingBookingNotifs
+        .filter(n => !activeBookingIds.has(n.bookingId as string))
+        .map(n => n.id);
+
+      if (staleNotifIds.length > 0) {
+        // Delete them from DB
+        await this.prisma.notification.deleteMany({
+          where: { id: { in: staleNotifIds } }
+        });
+
+        // Filter them out of the return array
+        return allNotifications.filter(n => !staleNotifIds.includes(n.id));
+      }
+    }
+
+    return allNotifications;
   }
 
   async markNotificationRead(userId: string, notificationId: string) {

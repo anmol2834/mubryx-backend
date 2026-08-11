@@ -59,10 +59,11 @@ export class TokenService {
     return { accessToken, refreshToken };
   }
 
-  /**
-   * Validates a refresh token and generates a new pair (Rotation).
-   */
   async rotateTokens(oldRefreshToken: string, deviceInfo?: string): Promise<{ accessToken: string; refreshToken: string }> {
+    if (typeof oldRefreshToken !== 'string') {
+      throw new UnauthorizedException('Invalid token format');
+    }
+
     const tokenHash = crypto.createHash('sha256').update(oldRefreshToken).digest('hex');
 
     // Find valid refresh token
@@ -71,7 +72,7 @@ export class TokenService {
       include: { session: true, user: true },
     });
 
-    if (!tokenRecord || tokenRecord.isRevoked || tokenRecord.expiresAt < new Date() || !tokenRecord.session.isActive) {
+    if (!tokenRecord || tokenRecord.isRevoked || tokenRecord.expiresAt < new Date() || !tokenRecord.session || !tokenRecord.session.isActive) {
       if (tokenRecord && !tokenRecord.isRevoked) {
         // If someone uses an expired but unrevoked token, revoke it
         await this.revokeToken(oldRefreshToken);
