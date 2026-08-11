@@ -104,16 +104,16 @@ export class AssignmentService {
 
     this.logger.log(`[AssignmentService] Booking ${bookingId} successfully assigned to ${technician.id}`);
 
-    // Emit real-time events to other technicians
-    const otherDispatches = await this.prisma.bookingDispatch.findMany({
-      where: { bookingId, status: 'SUPERSEDED' },
+    // Emit real-time events to ALL technicians to immediately clear their feeds
+    const allDispatches = await this.prisma.bookingDispatch.findMany({
+      where: { bookingId },
       include: { technician: { include: { user: true } } },
     });
 
-    for (const d of otherDispatches) {
+    for (const d of allDispatches) {
       this.realtimeService.emitToTechnician(d.technician.user.id, 'booking:no-longer-available', {
         bookingId,
-        reason: 'ASSIGNED_TO_OTHER',
+        reason: d.status === 'ACCEPTED' ? 'ACCEPTED_BY_YOU' : 'ASSIGNED_TO_OTHER',
       });
     }
 
