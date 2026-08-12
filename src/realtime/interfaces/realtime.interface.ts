@@ -42,6 +42,7 @@ export interface BookingEventPayload {
     distance: string;
     isTopRated: boolean;
   } | null;
+  happyCode?: string | null;
   updatedAt: string;
 }
 

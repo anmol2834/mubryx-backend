@@ -54,6 +54,7 @@ function calculatePricing(items: Array<{ unitPrice: number; quantity: number }>)
 
 function formatBookingResponse(booking: any) {
   return {
+    id: booking.id,
     bookingId: booking.id,
     bookingNumber: booking.bookingNumber,
     status: booking.status,
@@ -92,6 +93,7 @@ function formatBookingResponse(booking: any) {
     customerNotes: booking.customerNotes ?? null,
     technicianId: booking.technicianId ?? null,
     otp: booking.otp ?? null,
+    happyCode: booking.happyCode ?? null,
     cancelledAt: booking.cancelledAt ?? null,
     cancellationReason: booking.cancellationReason ?? null,
     createdAt: booking.createdAt,

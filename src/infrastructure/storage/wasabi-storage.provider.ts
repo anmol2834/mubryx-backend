@@ -5,6 +5,7 @@ import {
   HeadObjectCommand,
   HeadBucketCommand,
   CreateBucketCommand,
+  GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Injectable, Logger } from '@nestjs/common';
@@ -124,7 +125,7 @@ export class WasabiStorageProvider implements StorageProvider {
       }
     }
 
-    const command = new HeadObjectCommand({
+    const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: objectKey,
     });

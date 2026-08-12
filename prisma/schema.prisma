@@ -141,12 +141,17 @@ model TechnicianProfile {
   skills           Category[]             @relation("TechnicianSkills")
   isOnline         Boolean                @default(false)
   lastLocationUpdatedAt DateTime?
+  
+  rating           Float?                 @default(0.0)
+  totalRatings     Int                    @default(0)
+
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
   dispatches       BookingDispatch[]
   bookings         Booking[]
 
   user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankDetails      TechnicianBankDetails?
 
   @@index([onboardingStatus])
   @@map("technician_profiles")
@@ -183,6 +188,23 @@ model TechnicianExperience {
 
   @@index([technicianId])
   @@map("technician_experiences")
+}
+
+model TechnicianBankDetails {
+  id             String            @id @default(cuid())
+  technicianId   String            @unique
+  technician     TechnicianProfile @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  bankName       String
+  accountNumber  String
+  ifsc           String
+  accountHolder  String
+  isVerified     Boolean           @default(false)
+  upiId          String?
+  upiVerified    Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@map("technician_bank_details")
 }
 
 enum CategoryPlacement {
@@ -394,6 +416,7 @@ model Booking {
   totalAmount Float
   couponCode  String?
   otp         String?
+  happyCode   String?
 
   // Notes
   customerNotes String?

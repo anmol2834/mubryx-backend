@@ -1,6 +1,7 @@
 import { Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RealtimeService } from '../../realtime/services/realtime.service';
+import { REALTIME_EVENTS } from '../../realtime/constants/realtime-events.constant';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -154,6 +155,14 @@ export class AssignmentService {
       },
     });
 
+    // Invalidate technician's performance metrics (acceptance rate changes after accepting)
+    this.realtimeService.emitToTechnician(technician.user.id, REALTIME_EVENTS.TECHNICIAN.PERFORMANCE_UPDATED, {
+      technicianId: technician.id,
+      triggeredBy: 'booking_accepted',
+      bookingId,
+      updatedAt: new Date().toISOString(),
+    });
+
     return result;
   }
 
@@ -188,6 +197,20 @@ export class AssignmentService {
         respondedAt: new Date(),
       },
     });
+
+    // Emit performance update — rejecting a booking affects acceptance rate
+    const techWithUser = await this.prisma.technicianProfile.findUnique({
+      where: { id: technician.id },
+      include: { user: { select: { id: true } } },
+    });
+    if (techWithUser?.user) {
+      this.realtimeService.emitToTechnician(techWithUser.user.id, REALTIME_EVENTS.TECHNICIAN.PERFORMANCE_UPDATED, {
+        technicianId: technician.id,
+        triggeredBy: 'booking_rejected',
+        bookingId,
+        updatedAt: new Date().toISOString(),
+      });
+    }
 
     return { success: true };
   }

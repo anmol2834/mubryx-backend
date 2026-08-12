@@ -107,6 +107,8 @@ export class TechniciansService {
         documents: true,
         experiences: true,
         skills: true,
+        bankDetails: true,
+        user: { select: { phone: true, email: true, createdAt: true } },
       },
     });
 
@@ -126,11 +128,176 @@ export class TechniciansService {
           documents: true,
           experiences: true,
           skills: true,
+          bankDetails: true,
+          user: { select: { phone: true, email: true, createdAt: true } },
         },
       });
     }
 
-    return profile;
+
+    let signedProfilePhoto = profile.profilePhoto;
+    if (signedProfilePhoto) {
+      try {
+        signedProfilePhoto = await this.storageProvider.getSignedUrl(signedProfilePhoto);
+      } catch (err) {
+        // Fallback to original url if signing fails
+      }
+    }
+
+    // Use optimized aggregate queries rather than in-memory calculation
+    const performance = await this.getPerformance(userId);
+
+    return {
+      ...profile,
+      profilePhoto: signedProfilePhoto,
+      phone: profile.user?.phone,
+      email: profile.user?.email,
+      joinedDate: profile.user?.createdAt,
+      performance,
+    };
+  }
+
+  async getPerformance(userId: string) {
+    // Resolve technician profile ID from userId (JWT subject)
+    const profile = await this.prisma.technicianProfile.findUnique({
+      where: { userId },
+      select: { id: true, rating: true, totalRatings: true },
+    });
+
+    if (!profile) {
+      throw new BadRequestException('Technician profile not found');
+    }
+
+    const technicianId = profile.id;
+    const now = new Date();
+
+    // ── Period boundaries ─────────────────────────────────────────────────────
+    const last30DaysStart = new Date(now);
+    last30DaysStart.setDate(last30DaysStart.getDate() - 30);
+
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // ── Jobs Completed (All Time) ─────────────────────────────────────────────
+    // Only count bookings genuinely COMPLETED by this specific technician
+    const jobsCompleted = await this.prisma.booking.count({
+      where: {
+        technicianId,
+        status: { in: ['COMPLETED', 'SERVICE_COMPLETED'] },
+      },
+    });
+
+    // ── This Month Jobs (completed within current calendar month) ─────────────
+    const thisMonthJobs = await this.prisma.booking.count({
+      where: {
+        technicianId,
+        status: { in: ['COMPLETED', 'SERVICE_COMPLETED'] },
+        completedAt: { gte: thisMonthStart },
+      },
+    });
+
+    // ── Total Earnings (All Time, from completed bookings) ────────────────────
+    const earningsResult = await this.prisma.booking.aggregate({
+      where: {
+        technicianId,
+        status: { in: ['COMPLETED', 'SERVICE_COMPLETED'] },
+      },
+      _sum: { totalAmount: true },
+    });
+    const totalEarnings = earningsResult._sum.totalAmount ?? 0;
+
+    // ── Acceptance Rate (Last 30 days) ────────────────────────────────────────
+    // Denominator: dispatches with terminal outcomes that the technician was
+    // responsible for: ACCEPTED, REJECTED, EXPIRED.
+    // SUPERSEDED means another tech accepted first — not the technician's fault,
+    // so we exclude SUPERSEDED from the denominator.
+    const [acceptedDispatches, rejectedDispatches, expiredDispatches] = await Promise.all([
+      this.prisma.bookingDispatch.count({
+        where: {
+          technicianId,
+          status: 'ACCEPTED',
+          createdAt: { gte: last30DaysStart },
+        },
+      }),
+      this.prisma.bookingDispatch.count({
+        where: {
+          technicianId,
+          status: 'REJECTED',
+          createdAt: { gte: last30DaysStart },
+        },
+      }),
+      this.prisma.bookingDispatch.count({
+        where: {
+          technicianId,
+          status: 'EXPIRED',
+          createdAt: { gte: last30DaysStart },
+        },
+      }),
+    ]);
+
+    const totalEligibleDispatches = acceptedDispatches + rejectedDispatches + expiredDispatches;
+    const acceptanceRate =
+      totalEligibleDispatches > 0
+        ? Math.round((acceptedDispatches / totalEligibleDispatches) * 100)
+        : 0; // 0 = no data, not 100
+
+    // ── Completion Rate (Last 30 days) ────────────────────────────────────────
+    // Denominator: bookings assigned to this technician that reached a terminal
+    // status (COMPLETED, CANCELLED, FAILED) within last 30 days.
+    // Only count jobs that were genuinely this technician's responsibility
+    // (technicianId matches and the booking had a terminal outcome).
+    const [completedCount, cancelledCount, failedCount] = await Promise.all([
+      this.prisma.booking.count({
+        where: {
+          technicianId,
+          status: { in: ['COMPLETED', 'SERVICE_COMPLETED'] },
+          assignedAt: { gte: last30DaysStart },
+        },
+      }),
+      this.prisma.booking.count({
+        where: {
+          technicianId,
+          status: 'CANCELLED',
+          assignedAt: { gte: last30DaysStart },
+        },
+      }),
+      this.prisma.booking.count({
+        where: {
+          technicianId,
+          status: 'FAILED',
+          assignedAt: { gte: last30DaysStart },
+        },
+      }),
+    ]);
+
+    const totalTerminalBookings = completedCount + cancelledCount + failedCount;
+    const completionRate =
+      totalTerminalBookings > 0
+        ? Math.round((completedCount / totalTerminalBookings) * 100)
+        : 0; // 0 = no data, not 100
+
+    // ── Average Rating ────────────────────────────────────────────────────────
+    // Use the authoritative denormalized fields on the profile.
+    // When totalRatings = 0, averageRating is 0 (not 5.0).
+    // Note: rating field defaults to 0.0 in schema, totalRatings defaults to 0.
+    const averageRating = profile.totalRatings > 0 ? (profile.rating ?? 0) : 0;
+    const ratingCount = profile.totalRatings ?? 0;
+
+    return {
+      jobsCompleted,
+      thisMonthJobs,
+      totalEarnings,
+      acceptanceRate,
+      completionRate,
+      averageRating,
+      ratingCount,
+      period: {
+        acceptanceRatePeriod: 'last_30_days',
+        completionRatePeriod: 'last_30_days',
+        jobsCompletedPeriod: 'all_time',
+        periodStart: last30DaysStart.toISOString(),
+        periodEnd: now.toISOString(),
+      },
+    };
   }
 
   async updateBasicInfo(userId: string, dto: UpdateBasicInfoDto) {

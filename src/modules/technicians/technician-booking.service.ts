@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RealtimeService } from '../../realtime/services/realtime.service';
 import { REALTIME_EVENTS } from '../../realtime/constants/realtime-events.constant';
 import { BookingStatus, BookingSparePart } from '../../generated/prisma/client';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class TechnicianBookingService {
@@ -101,28 +102,38 @@ export class TechnicianBookingService {
       throw new ForbiddenException('You do not have access to this booking');
     }
 
-    if (nextStatus === 'SERVICE_STARTED') {
-      if (!otp) {
-        throw new BadRequestException('OTP is required to start service');
-      }
-      // Strict backend validation against the actual OTP stored in the DB.
-      if (otp !== booking.otp) {
-        throw new BadRequestException('Invalid OTP. Please ask the customer for the 4-digit code.');
-      }
-    }
-
     // Idempotency: if already in the target status, just return the booking
     if (booking.status === nextStatus) {
       return booking;
     }
 
+    if (nextStatus === 'SERVICE_STARTED') {
+      if (!otp) {
+        throw new BadRequestException('OTP is required to start service');
+      }
+      // Strict backend validation against the actual OTP stored in the DB.
+      if (!booking.otp || otp !== booking.otp) {
+        throw new BadRequestException('Invalid OTP. Please ask the customer for the 4-digit code.');
+      }
+    }
+
+    if (nextStatus === 'SERVICE_COMPLETED' || nextStatus === 'COMPLETED') {
+      if (!otp) {
+        throw new BadRequestException('Happy Code is required to complete service');
+      }
+      if (!booking.happyCode || otp !== booking.happyCode) {
+        throw new BadRequestException('Invalid Happy Code. Please ask the customer for the 4-digit code.');
+      }
+    }
+
     const updatedBooking = await this.prisma.$transaction(async (tx) => {
+      // Happy Code generation has been moved to a separate endpoint called when clicking 'End Service'
       const b = await tx.booking.update({
         where: { id: bookingId },
         data: {
           status: nextStatus,
           ...(nextStatus === 'SERVICE_STARTED' ? { startedAt: new Date() } : {}),
-          ...(nextStatus === 'SERVICE_COMPLETED' ? { completedAt: new Date() } : {}),
+          ...(nextStatus === 'SERVICE_COMPLETED' || nextStatus === 'COMPLETED' ? { completedAt: new Date() } : {}),
         },
       });
 
@@ -151,12 +162,66 @@ export class TechnicianBookingService {
       bookingId,
       bookingNumber: booking.bookingNumber,
       customerId: booking.customerId,
+      technicianId: technician.id,
       status: nextStatus,
       previousStatus: booking.status,
+      happyCode: updatedBooking.happyCode, // Pass happy code to customer track service
       updatedAt: new Date().toISOString(),
     });
 
+    // After any terminal status transition, invalidate the technician's performance cache
+    // so the UI reflects updated metrics (jobsCompleted, completionRate) in realtime
+    const terminalStatuses: string[] = ['SERVICE_COMPLETED', 'COMPLETED', 'CANCELLED', 'FAILED'];
+    if (terminalStatuses.includes(nextStatus)) {
+      this.realtimeService.emitToTechnician(userId, REALTIME_EVENTS.TECHNICIAN.PERFORMANCE_UPDATED, {
+        technicianId: technician.id,
+        triggeredBy: 'booking_status_change',
+        bookingId,
+        newStatus: nextStatus,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
     return updatedBooking;
+  }
+
+  async generateHappyCode(userId: string, bookingId: string) {
+    const technician = await this.getTechnicianProfile(userId);
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (!booking || booking.technicianId !== technician.id) {
+      throw new ForbiddenException('You do not have access to this booking');
+    }
+
+    if (booking.status !== 'SERVICE_STARTED') {
+      throw new BadRequestException('Cannot generate Happy Code unless service is started');
+    }
+
+    if (booking.happyCode) {
+      return { happyCode: booking.happyCode }; // Return existing if already generated
+    }
+
+    const happyCode = crypto.randomInt(1000, 10000).toString();
+
+    await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { happyCode },
+    });
+
+    // Emit real-time event to customer so they can see the happy code
+    this.realtimeService.emitBookingEvent(bookingId, REALTIME_EVENTS.BOOKING.STATUS_CHANGED, {
+      bookingId,
+      bookingNumber: booking.bookingNumber,
+      customerId: booking.customerId,
+      status: booking.status,
+      happyCode,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return { happyCode };
   }
 
   async addSparePart(userId: string, bookingId: string, item: { name: string; category?: string; unitPrice: number; quantity: number }) {

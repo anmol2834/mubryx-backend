@@ -30,6 +30,7 @@ export const REALTIME_EVENTS = {
     STATUS_UPDATED: 'technician:status_updated',
     LOCATION_UPDATED: 'technician:location_updated',
     ASSIGNMENT_DISPATCHED: 'technician:assignment_dispatched',
+    PERFORMANCE_UPDATED: 'technician:performance_updated',
   },
 
   // Notification events

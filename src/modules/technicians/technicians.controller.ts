@@ -66,6 +66,15 @@ export class TechniciansController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @Get('performance')
+  @ApiOperation({ summary: 'Get authenticated technician performance metrics (backend-authoritative, no hardcoded values)' })
+  async getPerformance(@CurrentUser() user: any) {
+    const userId = getUserIdFromUser(user);
+    return this.techniciansService.getPerformance(userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Patch('onboarding/basic-info')
   @ApiOperation({ summary: 'Update basic information' })
   async updateBasicInfo(@CurrentUser() user: any, @Body() dto: UpdateBasicInfoDto) {

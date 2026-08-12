@@ -41,7 +41,7 @@ export class DispatchService {
 
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
-      include: { items: true },
+      include: { items: { include: { service: true } } },
     });
 
     if (!booking) {
@@ -59,7 +59,19 @@ export class DispatchService {
       return;
     }
 
-    // Find all online, approved technicians with recent locations
+    const categoryIds = Array.from(new Set(booking.items.map((item) => item.service?.categoryId).filter(Boolean))) as string[];
+
+    // SAFETY GUARD: If no valid categoryIds could be resolved (e.g. orphaned service references),
+    // abort dispatch entirely rather than broadcasting to ALL technicians without skill filtering.
+    // This prevents wrong-category leads (e.g. Geyser → AC-only technician).
+    if (categoryIds.length === 0) {
+      this.logger.warn(`[DispatchService] Booking ${bookingId} has no resolvable categoryIds from items. Aborting dispatch to prevent unfiltered broadcast.`);
+      return;
+    }
+
+    this.logger.log(`[DispatchService] Dispatching for categoryIds=[${categoryIds.join(', ')}] on booking=${bookingId}`);
+
+    // Find all online, approved technicians with recent locations who have at least one required category
     const freshnessThreshold = new Date(Date.now() - TECHNICIAN_LOCATION_MAX_AGE_SECONDS * 1000);
 
     const eligibleTechnicians = await this.prisma.technicianProfile.findMany({
@@ -73,6 +85,13 @@ export class DispatchService {
         },
         latitude: { not: null },
         longitude: { not: null },
+        ...(categoryIds.length > 0 ? {
+          skills: {
+            some: {
+              id: { in: categoryIds },
+            },
+          },
+        } : {}),
       },
       include: {
         user: true,
