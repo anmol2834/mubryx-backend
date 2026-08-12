@@ -407,6 +407,7 @@ model Booking {
   items         BookingItem[]
   statusHistory BookingStatusHistory[]
   dispatches    BookingDispatch[]
+  spareParts    BookingSparePart[]
 
   @@index([customerId])
   @@index([status])
@@ -515,4 +516,20 @@ model DevicePushToken {
   @@index([userId])
   @@index([pushToken])
   @@map("device_push_tokens")
+}
+
+model BookingSparePart {
+  id        String   @id @default(cuid())
+  bookingId String
+  name      String
+  category  String?
+  unitPrice Float
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  @@index([bookingId])
+  @@map("booking_spare_parts")
 }
