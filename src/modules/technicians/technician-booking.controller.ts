@@ -59,12 +59,13 @@ export class TechnicianBookingController {
     @CurrentUser() user: any,
     @Param('id') id: string,
     @Body('status') status: BookingStatus,
+    @Body('otp') otp?: string,
   ) {
     const userId = getUserIdFromUser(user);
     if (!status) {
       throw new BadRequestException('Status is required');
     }
-    return this.technicianBookingService.updateBookingStatus(userId, id, status);
+    return this.technicianBookingService.updateBookingStatus(userId, id, status, otp);
   }
 
   @Post(':id/spare-parts')

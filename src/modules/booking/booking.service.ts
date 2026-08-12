@@ -416,7 +416,7 @@ export class BookingService {
 
     const bookings = await this.prisma.booking.findMany({
       where,
-      include: { items: true },
+      include: { items: true, technician: true },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
@@ -431,6 +431,7 @@ export class BookingService {
       where: { id: bookingId },
       include: {
         items: true,
+        technician: true,
         statusHistory: { orderBy: { createdAt: 'asc' } },
       },
     });

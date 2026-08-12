@@ -90,7 +90,7 @@ export class TechnicianBookingService {
     return booking;
   }
 
-  async updateBookingStatus(userId: string, bookingId: string, nextStatus: BookingStatus) {
+  async updateBookingStatus(userId: string, bookingId: string, nextStatus: BookingStatus, otp?: string) {
     const technician = await this.getTechnicianProfile(userId);
 
     const booking = await this.prisma.booking.findUnique({
@@ -99,6 +99,16 @@ export class TechnicianBookingService {
 
     if (!booking || booking.technicianId !== technician.id) {
       throw new ForbiddenException('You do not have access to this booking');
+    }
+
+    if (nextStatus === 'SERVICE_STARTED') {
+      if (!otp) {
+        throw new BadRequestException('OTP is required to start service');
+      }
+      // Strict backend validation against the actual OTP stored in the DB.
+      if (otp !== booking.otp) {
+        throw new BadRequestException('Invalid OTP. Please ask the customer for the 4-digit code.');
+      }
     }
 
     // Idempotency: if already in the target status, just return the booking
@@ -127,12 +137,12 @@ export class TechnicianBookingService {
         },
       });
 
-      if (nextStatus === 'SERVICE_COMPLETED' || nextStatus === 'COMPLETED') {
-        // User strictly requested to wipe the entire history for this booking once completed
-        await tx.bookingStatusHistory.deleteMany({
-          where: { bookingId },
-        });
-      }
+      // if (nextStatus === 'SERVICE_COMPLETED' || nextStatus === 'COMPLETED') {
+      //   // User strictly requested to wipe the entire history for this booking once completed
+      //   await tx.bookingStatusHistory.deleteMany({
+      //     where: { bookingId },
+      //   });
+      // }
 
       return b;
     });

@@ -9,7 +9,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   constructor() {
     const connectionString = process.env.DATABASE_URL;
-    const pool = new Pool({ connectionString });
+    const pool = new Pool({ 
+      connectionString,
+      ssl: process.env.NODE_ENV === 'production' || connectionString?.includes('neon.tech') ? { rejectUnauthorized: false } : undefined,
+    });
+    
+    // Catch idle connection errors to prevent unhandled process crashes
+    pool.on('error', (err) => this.logger.error('Unexpected error on idle pg client', err));
+
     const adapter = new PrismaPg(pool);
     super({ adapter });
   }
