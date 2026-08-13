@@ -213,4 +213,13 @@ export class TechniciansController {
     const notificationId = (req.params as any).id;
     return this.techniciansService.markNotificationRead(userId, notificationId);
   }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('earnings')
+  @ApiOperation({ summary: 'Get detailed earnings and transaction ledger' })
+  async getEarnings(@CurrentUser() user: any) {
+    const userId = getUserIdFromUser(user);
+    return this.techniciansService.getEarnings(userId);
+  }
 }

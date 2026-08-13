@@ -152,6 +152,7 @@ model TechnicianProfile {
 
   user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   bankDetails      TechnicianBankDetails?
+  wallet           TechnicianWallet?
 
   @@index([onboardingStatus])
   @@map("technician_profiles")
@@ -555,4 +556,45 @@ model BookingSparePart {
   
   @@index([bookingId])
   @@map("booking_spare_parts")
+}
+
+model TechnicianWallet {
+  id               String            @id @default(cuid())
+  technicianId     String            @unique
+  technician       TechnicianProfile @relation(fields: [technicianId], references: [id])
+  availableBalance Float             @default(0.0)
+  reservedBalance  Float             @default(0.0)
+  ledgerBalance    Float             @default(0.0) // available + reserved
+  currency         String            @default("INR")
+  updatedAt        DateTime          @updatedAt
+  
+  transactions     WalletTransaction[]
+
+  @@map("technician_wallets")
+}
+
+enum WalletTransactionType {
+  RECHARGE
+  COMMISSION_RESERVATION
+  COMMISSION_RELEASE
+  COMMISSION_CAPTURE
+  JOB_EARNING
+  WITHDRAWAL
+  ADJUSTMENT
+}
+
+model WalletTransaction {
+  id               String                @id @default(cuid())
+  walletId         String
+  wallet           TechnicianWallet      @relation(fields: [walletId], references: [id])
+  type             WalletTransactionType
+  amount           Float
+  balanceBefore    Float
+  balanceAfter     Float
+  referenceId      String?               // E.g., Booking ID or Payment Gateway ID
+  description      String?
+  createdAt        DateTime              @default(now())
+
+  @@index([walletId, createdAt])
+  @@map("wallet_transactions")
 }

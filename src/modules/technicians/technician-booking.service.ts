@@ -3,12 +3,14 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RealtimeService } from '../../realtime/services/realtime.service';
 import { REALTIME_EVENTS } from '../../realtime/constants/realtime-events.constant';
 import { BookingStatus, BookingSparePart } from '../../generated/prisma/client';
+import { WalletService } from '../wallet/wallet.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -18,6 +20,7 @@ export class TechnicianBookingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtimeService: RealtimeService,
+    private readonly walletService: WalletService,
   ) {}
 
   private async getTechnicianProfile(userId: string) {
@@ -128,14 +131,37 @@ export class TechnicianBookingService {
 
     const updatedBooking = await this.prisma.$transaction(async (tx) => {
       // Happy Code generation has been moved to a separate endpoint called when clicking 'End Service'
-      const b = await tx.booking.update({
-        where: { id: bookingId },
+      const updatedCount = await tx.booking.updateMany({
+        where: { id: bookingId, status: booking.status },
         data: {
           status: nextStatus,
           ...(nextStatus === 'SERVICE_STARTED' ? { startedAt: new Date() } : {}),
           ...(nextStatus === 'SERVICE_COMPLETED' || nextStatus === 'COMPLETED' ? { completedAt: new Date() } : {}),
         },
       });
+
+      if (!updatedCount || updatedCount.count === 0) {
+        throw new ConflictException('Booking status was already changed by another request');
+      }
+
+      const b = await tx.booking.findUnique({ where: { id: bookingId } });
+      if (!b) throw new ConflictException('Booking not found after update');
+
+      // Handle Financial Settlement Atomically
+      if (nextStatus === 'SERVICE_COMPLETED' || nextStatus === 'COMPLETED') {
+        const commissionAmount = b.totalAmount * 0.20;
+        const technicianEarning = b.totalAmount * 0.80;
+
+        // 1. Capture reserved commission
+        await this.walletService.captureReservedAmount(technician.id, commissionAmount, bookingId, tx);
+        
+        // 2. Add technician's 80% earning to wallet
+        await this.walletService.addEarning(technician.id, technicianEarning, bookingId, tx);
+      } else if (nextStatus === 'CANCELLED' || nextStatus === 'FAILED') {
+        // Release reserved commission if the job didn't complete
+        const commissionAmount = b.totalAmount * 0.20;
+        await this.walletService.releaseReservedAmount(technician.id, commissionAmount, bookingId, tx);
+      }
 
       await tx.bookingStatusHistory.create({
         data: {
@@ -148,13 +174,6 @@ export class TechnicianBookingService {
         },
       });
 
-      // if (nextStatus === 'SERVICE_COMPLETED' || nextStatus === 'COMPLETED') {
-      //   // User strictly requested to wipe the entire history for this booking once completed
-      //   await tx.bookingStatusHistory.deleteMany({
-      //     where: { bookingId },
-      //   });
-      // }
-
       return b;
     });
 
@@ -165,7 +184,7 @@ export class TechnicianBookingService {
       technicianId: technician.id,
       status: nextStatus,
       previousStatus: booking.status,
-      happyCode: updatedBooking.happyCode, // Pass happy code to customer track service
+      happyCode: updatedBooking!.happyCode, // Pass happy code to customer track service
       updatedAt: new Date().toISOString(),
     });
 

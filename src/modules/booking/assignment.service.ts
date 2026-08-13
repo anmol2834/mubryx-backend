@@ -1,8 +1,9 @@
-import { Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RealtimeService } from '../../realtime/services/realtime.service';
 import { REALTIME_EVENTS } from '../../realtime/constants/realtime-events.constant';
 import { NotificationsService } from '../notifications/notifications.service';
+import { WalletService } from '../wallet/wallet.service';
 
 @Injectable()
 export class AssignmentService {
@@ -12,6 +13,7 @@ export class AssignmentService {
     private readonly prisma: PrismaService,
     private readonly realtimeService: RealtimeService,
     private readonly notificationsService: NotificationsService,
+    private readonly walletService: WalletService,
   ) {}
 
   async acceptBooking(userId: string, bookingId: string) {
@@ -57,15 +59,30 @@ export class AssignmentService {
         throw new ConflictException('Booking is no longer available');
       }
 
-      // 2. Update booking status and assigned technician
-      const updatedBooking = await tx.booking.update({
-        where: { id: bookingId },
+      // Calculate 20% commission to reserve
+      const commissionAmount = booking.totalAmount * 0.20;
+
+      // Reserve funds from technician's wallet atomically
+      await this.walletService.reserveAmount(technician.id, commissionAmount, bookingId, tx);
+
+      // 2. Update booking status and assigned technician atomically to prevent racing
+      const updatedCount = await tx.booking.updateMany({
+        where: { id: bookingId, status: booking.status },
         data: {
           status: 'TECHNICIAN_ASSIGNED',
           technicianId: technician.id,
           assignedAt: new Date(),
           acceptedAt: new Date(),
         },
+      });
+
+      if (!updatedCount || updatedCount.count === 0) {
+        throw new ConflictException('Booking was accepted by another technician');
+      }
+
+      // Fetch the updated booking for event dispatching
+      const updatedBooking = await tx.booking.findUnique({
+        where: { id: bookingId }
       });
 
       // 3. Mark this dispatch as ACCEPTED
@@ -140,11 +157,11 @@ export class AssignmentService {
     // Emit to customer
     this.realtimeService.emitBookingEvent(bookingId, 'booking:assigned', {
       bookingId,
-      bookingNumber: result.bookingNumber,
-      customerId: result.customerId,
-      status: result.status,
+      bookingNumber: result!.bookingNumber,
+      customerId: result!.customerId,
+      status: result!.status,
       technicianId: technician.id,
-      updatedAt: result.updatedAt.toISOString(),
+      updatedAt: result!.updatedAt.toISOString(),
       engineer: {
         name: technician.user.name || 'Technician',
         photo: technician.profilePhoto || null,

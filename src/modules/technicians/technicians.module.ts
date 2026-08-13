@@ -5,9 +5,10 @@ import { TechnicianBookingController } from './technician-booking.controller';
 import { TechnicianBookingService } from './technician-booking.service';
 import { AuthModule } from '../auth/auth.module';
 import { StorageModule } from '../../infrastructure/storage/storage.module';
+import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
-  imports: [AuthModule, StorageModule],
+  imports: [AuthModule, StorageModule, WalletModule],
   controllers: [TechniciansController, TechnicianBookingController],
   providers: [TechniciansService, TechnicianBookingService],
   exports: [TechniciansService],

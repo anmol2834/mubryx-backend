@@ -108,6 +108,7 @@ export class TechniciansService {
         experiences: true,
         skills: true,
         bankDetails: true,
+        wallet: true,
         user: { select: { phone: true, email: true, createdAt: true } },
       },
     });
@@ -123,12 +124,19 @@ export class TechniciansService {
           userId: user.id,
           fullName: user.name,
           onboardingStatus: 'DRAFT',
+          wallet: {
+            create: {
+              availableBalance: 0,
+              reservedBalance: 0,
+            }
+          }
         },
         include: {
           documents: true,
           experiences: true,
           skills: true,
           bankDetails: true,
+          wallet: true,
           user: { select: { phone: true, email: true, createdAt: true } },
         },
       });
@@ -147,6 +155,45 @@ export class TechniciansService {
     // Use optimized aggregate queries rather than in-memory calculation
     const performance = await this.getPerformance(userId);
 
+    // Fetch Wallet
+    const wallet = await this.prisma.technicianWallet.findUnique({
+      where: { technicianId: profile.id },
+    });
+
+    // Fetch Active Job (The most recent active job this technician is working on)
+    const activeJob = await this.prisma.booking.findFirst({
+      where: {
+        technicianId: profile.id,
+        status: { in: ['TECHNICIAN_ACCEPTED', 'TECHNICIAN_ON_THE_WAY', 'TECHNICIAN_ARRIVED', 'SERVICE_STARTED'] },
+      },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        customer: { select: { name: true, phone: true } },
+        address: true,
+        items: { include: { service: true } },
+      }
+    });
+
+    // Fetch Upcoming Jobs (Jobs assigned but not yet started/active)
+    const upcomingJobs = await this.prisma.booking.findMany({
+      where: {
+        technicianId: profile.id,
+        status: { in: ['TECHNICIAN_ASSIGNED', 'TECHNICIAN_ACCEPTED'] },
+        id: { not: activeJob?.id || undefined },
+      },
+      orderBy: { scheduledAt: 'asc' },
+      take: 5,
+      include: {
+        customer: { select: { name: true, phone: true } },
+        address: true,
+        items: { include: { service: true } },
+      }
+    });
+
+    const unreadNotifications = await this.prisma.notification.count({
+      where: { recipientId: userId, isRead: false },
+    });
+
     return {
       ...profile,
       profilePhoto: signedProfilePhoto,
@@ -154,6 +201,17 @@ export class TechniciansService {
       email: profile.user?.email,
       joinedDate: profile.user?.createdAt,
       performance,
+      // Flatten performance metrics for backward compatibility with frontend
+      assignedJobs: performance.jobsCompleted, // Map to semantic usage on frontend
+      completedJobs: performance.jobsCompleted,
+      pendingJobs: upcomingJobs.length,
+      earnings: performance.totalEarnings,
+      averageRating: performance.averageRating,
+      acceptanceRate: performance.acceptanceRate,
+      activeJob,
+      upcomingJobs,
+      wallet,
+      unreadNotifications,
     };
   }
 
@@ -196,14 +254,14 @@ export class TechniciansService {
     });
 
     // ── Total Earnings (All Time, from completed bookings) ────────────────────
-    const earningsResult = await this.prisma.booking.aggregate({
+    const earningsResult = await this.prisma.walletTransaction.aggregate({
       where: {
-        technicianId,
-        status: { in: ['COMPLETED', 'SERVICE_COMPLETED'] },
+        wallet: { technicianId },
+        type: 'JOB_EARNING',
       },
-      _sum: { totalAmount: true },
+      _sum: { amount: true },
     });
-    const totalEarnings = earningsResult._sum.totalAmount ?? 0;
+    const totalEarnings = earningsResult._sum.amount ?? 0;
 
     // ── Acceptance Rate (Last 30 days) ────────────────────────────────────────
     // Denominator: dispatches with terminal outcomes that the technician was
@@ -612,5 +670,99 @@ export class TechniciansService {
       where: { id: notificationId },
       data: { isRead: true }
     });
+  }
+
+  async getEarnings(userId: string) {
+    const profile = await this.prisma.technicianProfile.findUnique({
+      where: { userId },
+      include: { bankDetails: true }
+    });
+
+    if (!profile) throw new BadRequestException('Technician profile not found');
+
+    const wallet = await this.prisma.technicianWallet.findUnique({
+      where: { technicianId: profile.id }
+    });
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const transactions = await this.prisma.walletTransaction.findMany({
+      where: { walletId: wallet?.id, type: 'JOB_EARNING' },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    let today = 0, thisWeek = 0, thisMonth = 0, lifetime = 0;
+    
+    const mappedTransactions = [];
+
+    const bookingIds = transactions.filter(t => t.referenceId).map(t => t.referenceId as string);
+    const bookings = await this.prisma.booking.findMany({
+      where: { id: { in: bookingIds } },
+      include: {
+        customer: { select: { name: true } },
+        items: { include: { service: { include: { Category: true } } } }
+      }
+    });
+
+    const bookingMap = new Map(bookings.map(b => [b.id, b]));
+
+    for (const tx of transactions) {
+      const amount = tx.amount;
+      lifetime += amount;
+      if (tx.createdAt >= todayStart) today += amount;
+      if (tx.createdAt >= weekStart) thisWeek += amount;
+      if (tx.createdAt >= monthStart) thisMonth += amount;
+
+      const booking = tx.referenceId ? bookingMap.get(tx.referenceId) : null;
+      const serviceName = booking?.items[0]?.service?.title || tx.description || 'Service';
+      const categoryName = booking?.items[0]?.service?.Category?.name || 'Category';
+
+      mappedTransactions.push({
+        id: tx.id,
+        bookingId: tx.referenceId || tx.id,
+        customerName: booking?.customer?.name || 'Customer',
+        serviceName,
+        applianceName: categoryName,
+        amount: tx.amount,
+        date: tx.createdAt.toISOString(),
+        status: 'paid'
+      });
+    }
+
+    const totalJobsResult = await this.prisma.booking.count({
+      where: { technicianId: profile.id, status: { in: ['COMPLETED', 'SERVICE_COMPLETED'] } }
+    });
+
+    return {
+      summary: {
+        today,
+        todayChange: 0,
+        thisWeek,
+        weekChange: 0,
+        thisMonth,
+        monthLabel: monthStart.toLocaleString('default', { month: 'long' }),
+        lifetime,
+        totalJobs: totalJobsResult
+      },
+      transactions: mappedTransactions,
+      payoutInfo: {
+        availableBalance: wallet?.availableBalance || 0,
+        bank: profile.bankDetails ? {
+          bankName: profile.bankDetails.bankName,
+          maskedAccount: '•••• ' + profile.bankDetails.accountNumber.slice(-4),
+          ifsc: profile.bankDetails.ifsc,
+          isVerified: profile.bankDetails.isVerified
+        } : null,
+        upi: profile.bankDetails?.upiId ? {
+          upiId: profile.bankDetails.upiId,
+          isVerified: profile.bankDetails.upiVerified
+        } : null
+      },
+      withdrawalHistory: []
+    };
   }
 }

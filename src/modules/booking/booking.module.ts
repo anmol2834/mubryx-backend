@@ -5,9 +5,10 @@ import { DispatchService } from './dispatch.service';
 import { AssignmentService } from './assignment.service';
 
 import { NotificationsModule } from '@modules/notifications/notifications.module';
+import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, WalletModule],
   controllers: [BookingController],
   providers: [BookingService, DispatchService, AssignmentService],
   exports: [BookingService, DispatchService, AssignmentService],
