@@ -71,31 +71,28 @@ export class DispatchService {
 
     this.logger.log(`[DispatchService] Dispatching for categoryIds=[${categoryIds.join(', ')}] on booking=${bookingId}`);
 
-    // Find all online, approved technicians with recent locations who have at least one required category
-    const freshnessThreshold = new Date(Date.now() - TECHNICIAN_LOCATION_MAX_AGE_SECONDS * 1000);
-
+    // Find all online, approved/submitted technicians with coordinates who have matching skills
     const eligibleTechnicians = await this.prisma.technicianProfile.findMany({
       where: {
         isOnline: true,
         onboardingStatus: {
           in: [OnboardingStatus.APPROVED, OnboardingStatus.SUBMITTED],
         },
-        lastLocationUpdatedAt: {
-          gte: freshnessThreshold,
-        },
         latitude: { not: null },
         longitude: { not: null },
-        ...(categoryIds.length > 0 ? {
-          skills: {
-            some: {
-              id: { in: categoryIds },
-            },
-          },
-        } : {}),
+        ...(categoryIds.length > 0
+          ? {
+              skills: {
+                some: {
+                  id: { in: categoryIds },
+                },
+              },
+            }
+          : {}),
       },
       include: {
         user: true,
-      }
+      },
     });
 
     const matches = [];
@@ -104,7 +101,7 @@ export class DispatchService {
         booking.serviceLatitude,
         booking.serviceLongitude,
         tech.latitude!,
-        tech.longitude!
+        tech.longitude!,
       );
 
       if (distance <= TECHNICIAN_DISPATCH_RADIUS_KM) {
@@ -144,6 +141,7 @@ export class DispatchService {
       });
 
       const payload = {
+        type: 'booking:incoming',
         bookingId: booking.id,
         bookingNumber: booking.bookingNumber,
         status: booking.status,
@@ -154,7 +152,7 @@ export class DispatchService {
           longitude: booking.serviceLongitude,
           address: booking.snapshotAddress,
           landmark: booking.snapshotLandmark,
-          city: booking.snapshotCity
+          city: booking.snapshotCity,
         },
         dispatchId: dispatch.id,
         serviceSummary: serviceTitles,
@@ -170,25 +168,38 @@ export class DispatchService {
         expiresAt: expiresAt.toISOString(),
       };
 
-      // Persist Notification
+      // Persist Notification in DB
       await this.prisma.notification.create({
         data: {
           recipientId: match.tech.user.id,
           type: 'booking:incoming',
           title: 'New Service Request',
-          message: `Distance: ${match.distance.toFixed(1)} km`,
+          message: `${serviceTitles} • Distance: ${match.distance.toFixed(1)} km`,
           bookingId: booking.id,
-          metadata: payload
-        }
+          metadata: payload,
+        },
       });
 
-      // Emit real-time incoming booking to this specific technician via userId
+      // Emit real-time incoming booking to this specific technician room
       this.realtimeService.emitToTechnician(match.tech.user.id, 'booking:incoming', payload);
-      
+
+      // Emit realtime notification event
+      this.realtimeService.emitNotification(match.tech.user.id, {
+        id: dispatch.id,
+        userId: match.tech.user.id,
+        type: 'booking:incoming',
+        title: 'New Service Request',
+        body: `${serviceTitles} • Distance: ${match.distance.toFixed(1)} km`,
+        data: payload,
+        createdAt: new Date().toISOString(),
+      });
+
       // Dispatch OS push notification for background delivery
       this.notificationsService.sendBookingRequest(match.tech.user.id, payload);
-      
-      this.logger.log(`[DispatchService] Emitted booking:incoming to techId=${match.tech.id} userId=${match.tech.user.id} (${match.distance.toFixed(1)}km)`);
+
+      this.logger.log(
+        `[DispatchService] Emitted booking:incoming & notification to techId=${match.tech.id} userId=${match.tech.user.id} (${match.distance.toFixed(1)}km)`,
+      );
     }
   }
 }

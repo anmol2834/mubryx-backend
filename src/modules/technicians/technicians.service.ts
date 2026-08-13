@@ -603,23 +603,89 @@ export class TechniciansService {
     const profile = await this.getProfile(userId);
     if (!profile) throw new BadRequestException('Technician profile not found');
 
+    const techSkills = profile.skills || [];
+    const skillCategoryIds = techSkills.map((s: any) => s.id);
+
+    // Dynamic Discovery: auto-discover open bookings in TECHNICIAN_SEARCHING matching technician skills & radius
+    if (profile.latitude && profile.longitude) {
+      const openBookings = await this.prisma.booking.findMany({
+        where: {
+          status: 'TECHNICIAN_SEARCHING',
+          serviceLatitude: { not: null },
+          serviceLongitude: { not: null },
+          ...(skillCategoryIds.length > 0
+            ? {
+                items: {
+                  some: {
+                    service: {
+                      categoryId: { in: skillCategoryIds },
+                    },
+                  },
+                },
+              }
+            : {}),
+        },
+        include: {
+          items: { include: { service: true } },
+        },
+      });
+
+      const expiresAt = new Date(Date.now() + 60 * 1000);
+
+      for (const booking of openBookings) {
+        const R = 6371;
+        const dLat = (booking.serviceLatitude! - profile.latitude) * (Math.PI / 180);
+        const dLon = (booking.serviceLongitude! - profile.longitude) * (Math.PI / 180);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(profile.latitude * (Math.PI / 180)) *
+            Math.cos(booking.serviceLatitude! * (Math.PI / 180)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+
+        if (distance <= 30) {
+          await this.prisma.bookingDispatch.upsert({
+            where: {
+              bookingId_technicianId: {
+                bookingId: booking.id,
+                technicianId: profile.id,
+              },
+            },
+            update: {
+              status: 'OFFERED',
+              distanceKm: Number(distance.toFixed(1)),
+            },
+            create: {
+              bookingId: booking.id,
+              technicianId: profile.id,
+              distanceKm: Number(distance.toFixed(1)),
+              status: 'OFFERED',
+              expiresAt,
+            },
+          });
+        }
+      }
+    }
+
     const dispatches = await this.prisma.bookingDispatch.findMany({
       where: {
         technicianId: profile.id,
         status: 'OFFERED',
-        booking: { status: 'TECHNICIAN_SEARCHING' }
+        booking: { status: 'TECHNICIAN_SEARCHING' },
       },
       include: {
         booking: {
           include: {
             customer: {
-              select: { name: true, phone: true }
+              select: { name: true, phone: true },
             },
-            items: true
-          }
-        }
+            items: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     return dispatches;

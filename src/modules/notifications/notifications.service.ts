@@ -69,12 +69,14 @@ export class NotificationsService {
       messages.push({
         to: tokenRecord.pushToken,
         sound: 'default',
-        title: 'New Service Request',
+        title: '🚨 New Service Request',
         body: `${payload.serviceSummary || 'Service'} • ${amountText} • ${distanceText}`,
         data: { type: 'booking:incoming', ...payload },
         channelId: 'booking_requests',
         priority: 'high',
-      });
+        ttl: 60,
+        categoryId: 'booking_requests',
+      } as any);
     }
 
     const chunks = this.expo.chunkPushNotifications(messages);

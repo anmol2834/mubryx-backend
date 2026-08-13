@@ -24,5 +24,14 @@
       "@modules/*": ["src/modules/*"],
       "@prisma-service/*": ["src/prisma/*"]
     }
-  }
+  },
+  "include": [
+    "src/**/*",
+    "test/**/*",
+    "prisma.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

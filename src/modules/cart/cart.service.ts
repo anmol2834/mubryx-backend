@@ -38,6 +38,7 @@ export class CartService {
         service: item.service
           ? {
               id: item.service.id,
+              categoryId: item.service.categoryId,
               title: item.service.title,
               description: item.service.description,
               price: item.service.price,
@@ -74,6 +75,7 @@ export class CartService {
         discount: 0,
         taxableAmount: subtotal,
         tax,
+        platformFee: 0,
         total,
       },
     };
@@ -133,10 +135,18 @@ export class CartService {
 
   /**
    * Add item to active cart (Server authoritative pricing from PostgreSQL Service table).
+   * Enforces Single-Category Cart Isolation: replaces previous category items if a new category is selected.
    */
   async addCartItem(customerId: string, dto: AddCartItemDto) {
     const service = await this.prisma.service.findUnique({
       where: { id: dto.serviceId },
+      select: {
+        id: true,
+        categoryId: true,
+        price: true,
+        discountPrice: true,
+        isActive: true,
+      },
     });
 
     if (!service || !service.isActive) {
@@ -149,6 +159,7 @@ export class CartService {
     return this.prisma.$transaction(async (tx) => {
       let cart = await tx.cart.findFirst({
         where: { customerId, status: 'ACTIVE' },
+        select: { id: true },
       });
 
       if (!cart) {
@@ -159,8 +170,20 @@ export class CartService {
             currency: 'INR',
             version: 1,
           },
+          select: { id: true },
         });
       }
+
+      // Strict Single-Category Cart Isolation:
+      // Atomically delete ANY items in the active cart that do NOT belong to this service's category
+      await tx.cartItem.deleteMany({
+        where: {
+          cartId: cart.id,
+          service: {
+            categoryId: { not: service.categoryId },
+          },
+        },
+      });
 
       await tx.cartItem.upsert({
         where: {
