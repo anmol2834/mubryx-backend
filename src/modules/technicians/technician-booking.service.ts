@@ -149,18 +149,23 @@ export class TechnicianBookingService {
 
       // Handle Financial Settlement Atomically
       if (nextStatus === 'SERVICE_COMPLETED' || nextStatus === 'COMPLETED') {
-        const commissionAmount = b.totalAmount * 0.20;
-        const technicianEarning = b.totalAmount * 0.80;
+        // We must fetch spare parts for accurate calculation.
+        const fullBooking = await tx.booking.findUnique({
+          where: { id: bookingId },
+          include: { spareParts: true },
+        });
 
-        // 1. Capture reserved commission
-        await this.walletService.captureReservedAmount(technician.id, commissionAmount, bookingId, tx);
+        const sparePartsTotal = fullBooking?.spareParts.reduce((sum, part) => sum + (part.unitPrice * part.quantity), 0) || 0;
+        const commissionableAmount = b.subtotal + sparePartsTotal;
         
-        // 2. Add technician's 80% earning to wallet
-        await this.walletService.addEarning(technician.id, technicianEarning, bookingId, tx);
-      } else if (nextStatus === 'CANCELLED' || nextStatus === 'FAILED') {
-        // Release reserved commission if the job didn't complete
-        const commissionAmount = b.totalAmount * 0.20;
-        await this.walletService.releaseReservedAmount(technician.id, commissionAmount, bookingId, tx);
+        const companyCommission = commissionableAmount * 0.20;
+        const technicianEarnings = commissionableAmount - companyCommission;
+
+        // Add technician earnings directly to available balance
+        await this.walletService.addEarning(technician.id, technicianEarnings, bookingId, tx);
+
+        // Save GST (tax) and company commission to the Admin Wallet separately
+        await this.walletService.addAdminSettlement(companyCommission, b.tax, bookingId, tx);
       }
 
       await tx.bookingStatusHistory.create({
@@ -304,12 +309,12 @@ export class TechnicianBookingService {
 
     const subtotal = booking.items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
     const sparePartsTotal = booking.spareParts.reduce((sum, part) => sum + (part.unitPrice * part.quantity), 0);
-    const tax = Math.round(subtotal * 0.05); // Only taxing service for now
-    const totalAmount = subtotal + sparePartsTotal + tax + booking.platformFee - booking.discount;
+    const tax = Math.round((subtotal + sparePartsTotal) * 0.18);
+    const totalAmount = subtotal + sparePartsTotal + tax - booking.discount;
 
     await this.prisma.booking.update({
       where: { id: bookingId },
-      data: { totalAmount },
+      data: { tax, totalAmount },
     });
   }
 }

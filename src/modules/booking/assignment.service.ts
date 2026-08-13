@@ -59,11 +59,11 @@ export class AssignmentService {
         throw new ConflictException('Booking is no longer available');
       }
 
-      // Calculate 20% commission to reserve
-      const commissionAmount = booking.totalAmount * 0.20;
+      // Validate eligibility (20% of pre-GST subtotal)
+      const eligibilityAmount = booking.subtotal * 0.20;
 
-      // Reserve funds from technician's wallet atomically
-      await this.walletService.reserveAmount(technician.id, commissionAmount, bookingId, tx);
+      // Validate funds from technician's wallet atomically without reserving
+      await this.walletService.validateEligibility(technician.id, eligibilityAmount, tx);
 
       // 2. Update booking status and assigned technician atomically to prevent racing
       const updatedCount = await tx.booking.updateMany({

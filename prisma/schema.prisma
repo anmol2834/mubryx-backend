@@ -413,7 +413,6 @@ model Booking {
   subtotal    Float
   discount    Float  @default(0)
   tax         Float
-  platformFee Float
   totalAmount Float
   couponCode  String?
   otp         String?
@@ -563,8 +562,6 @@ model TechnicianWallet {
   technicianId     String            @unique
   technician       TechnicianProfile @relation(fields: [technicianId], references: [id])
   availableBalance Float             @default(0.0)
-  reservedBalance  Float             @default(0.0)
-  ledgerBalance    Float             @default(0.0) // available + reserved
   currency         String            @default("INR")
   updatedAt        DateTime          @updatedAt
   
@@ -575,12 +572,11 @@ model TechnicianWallet {
 
 enum WalletTransactionType {
   RECHARGE
-  COMMISSION_RESERVATION
-  COMMISSION_RELEASE
   COMMISSION_CAPTURE
   JOB_EARNING
   WITHDRAWAL
   ADJUSTMENT
+  CASH_COLLECTION_SETTLEMENT
 }
 
 model WalletTransaction {
@@ -597,4 +593,40 @@ model WalletTransaction {
 
   @@index([walletId, createdAt])
   @@map("wallet_transactions")
+}
+
+model AdminWallet {
+  id                  String                   @id @default(cuid())
+  availableBalance    Float                    @default(0.0)
+  totalCommission     Float                    @default(0.0)
+  totalGstCollected   Float                    @default(0.0)
+  currency            String                   @default("INR")
+  updatedAt           DateTime                 @updatedAt
+  
+  transactions        AdminWalletTransaction[]
+
+  @@map("admin_wallets")
+}
+
+enum AdminWalletTransactionType {
+  PLATFORM_COMMISSION
+  GST_COLLECTION
+  WITHDRAWAL
+  ADJUSTMENT
+}
+
+model AdminWalletTransaction {
+  id               String                     @id @default(cuid())
+  walletId         String
+  wallet           AdminWallet                @relation(fields: [walletId], references: [id])
+  type             AdminWalletTransactionType
+  amount           Float
+  balanceBefore    Float
+  balanceAfter     Float
+  referenceId      String?                    // E.g., Booking ID
+  description      String?
+  createdAt        DateTime                   @default(now())
+
+  @@index([walletId, createdAt])
+  @@map("admin_wallet_transactions")
 }

@@ -101,7 +101,7 @@ export class TechniciansService {
   }
 
   async getProfile(userId: string) {
-    let profile = await this.prisma.technicianProfile.findUnique({
+    let profile: any = await this.prisma.technicianProfile.findUnique({
       where: { userId },
       include: {
         documents: true,
@@ -127,7 +127,6 @@ export class TechniciansService {
           wallet: {
             create: {
               availableBalance: 0,
-              reservedBalance: 0,
             }
           }
         },
@@ -160,19 +159,33 @@ export class TechniciansService {
       where: { technicianId: profile.id },
     });
 
-    // Fetch Active Job (The most recent active job this technician is working on)
-    const activeJob = await this.prisma.booking.findFirst({
+    // Fetch Active Jobs and determine highest priority
+    const activeJobs = await this.prisma.booking.findMany({
       where: {
         technicianId: profile.id,
         status: { in: ['TECHNICIAN_ACCEPTED', 'TECHNICIAN_ON_THE_WAY', 'TECHNICIAN_ARRIVED', 'SERVICE_STARTED'] },
       },
-      orderBy: { updatedAt: 'desc' },
       include: {
         customer: { select: { name: true, phone: true } },
         address: true,
         items: { include: { service: true } },
       }
     });
+
+    const statusPriority: Record<string, number> = {
+      'SERVICE_STARTED': 4,
+      'TECHNICIAN_ARRIVED': 3,
+      'TECHNICIAN_ON_THE_WAY': 2,
+      'TECHNICIAN_ACCEPTED': 1,
+    };
+
+    activeJobs.sort((a, b) => {
+      const diff = (statusPriority[b.status] || 0) - (statusPriority[a.status] || 0);
+      if (diff !== 0) return diff;
+      return new Date(a.scheduledAt || 0).getTime() - new Date(b.scheduledAt || 0).getTime();
+    });
+
+    const activeJob = activeJobs[0] || null;
 
     // Fetch Upcoming Jobs (Jobs assigned but not yet started/active)
     const upcomingJobs = await this.prisma.booking.findMany({
@@ -535,7 +548,7 @@ export class TechniciansService {
       throw new BadRequestException('Basic information is incomplete');
     }
 
-    const docTypes = profile.documents.map((d) => d.type);
+    const docTypes = profile.documents.map((d: any) => d.type);
     if (!docTypes.includes('AADHAAR') || !docTypes.includes('PAN')) {
       throw new BadRequestException('Mandatory documents (AADHAAR, PAN) are missing');
     }

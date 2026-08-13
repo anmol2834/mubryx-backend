@@ -19,8 +19,6 @@ export class WalletService {
         data: {
           technicianId,
           availableBalance: 0,
-          reservedBalance: 0,
-          ledgerBalance: 0,
         },
       });
     }
@@ -41,7 +39,7 @@ export class WalletService {
 
       if (!wallet) {
         wallet = await tx.technicianWallet.create({
-          data: { technicianId, availableBalance: 0, reservedBalance: 0, ledgerBalance: 0 },
+          data: { technicianId, availableBalance: 0 },
         });
       }
 
@@ -52,7 +50,6 @@ export class WalletService {
         where: { id: wallet.id },
         data: {
           availableBalance: { increment: amount },
-          ledgerBalance: { increment: amount },
         },
       });
 
@@ -73,15 +70,15 @@ export class WalletService {
   }
 
   /**
-   * Reserves an amount from the available balance (e.g., when a job is accepted).
+   * Validates if the technician has enough balance to accept a job.
+   * Does NOT deduct or reserve any funds.
    */
-  async reserveAmount(technicianId: string, amount: number, bookingId: string, txClient?: any) {
-    if (amount <= 0) return null;
+  async validateEligibility(technicianId: string, amount: number, txClient?: any) {
+    if (amount <= 0) return true;
 
     const prismaClient = txClient || this.prisma;
     
-    // We do NOT start a new transaction if we're already inside one (via txClient)
-    const reserveLogic = async (tx: Prisma.TransactionClient) => {
+    const validateLogic = async (tx: Prisma.TransactionClient) => {
       const wallet = await tx.technicianWallet.findUnique({
         where: { technicianId },
       });
@@ -98,87 +95,48 @@ export class WalletService {
         });
       }
 
-      const balanceBefore = wallet.availableBalance;
-      const balanceAfter = balanceBefore - amount;
-
-      const updatedCount = await tx.technicianWallet.updateMany({
-        where: { id: wallet.id, availableBalance: { gte: amount } },
-        data: {
-          availableBalance: { decrement: amount },
-          reservedBalance: { increment: amount },
-        },
-      });
-
-      if (!updatedCount || updatedCount.count === 0) {
-        throw new BadRequestException({
-          message: 'Insufficient wallet balance to accept this job or concurrent modification. Please try again.',
-          requiredAmount: amount,
-          currentBalance: wallet.availableBalance,
-        });
-      }
-
-      await tx.walletTransaction.create({
-        data: {
-          walletId: wallet.id,
-          type: 'COMMISSION_RESERVATION',
-          amount: -amount,
-          balanceBefore,
-          balanceAfter,
-          referenceId: bookingId,
-          description: `Commission reserved for booking ${bookingId}`,
-        },
-      });
-
       return true;
     };
 
     if (txClient) {
-      return reserveLogic(txClient);
+      return validateLogic(txClient);
     } else {
-      return this.prisma.$transaction(reserveLogic);
+      return this.prisma.$transaction(validateLogic);
     }
   }
 
   /**
-   * Captures a reserved amount (e.g., when a job is completed).
+   * Charges commission and platform dues directly from available balance (used for Cash on Service).
    */
-  async captureReservedAmount(technicianId: string, amount: number, bookingId: string, txClient?: any) {
+  async chargeCommission(technicianId: string, amount: number, bookingId: string, txClient?: any) {
     if (amount <= 0) return null;
 
-    const prismaClient = txClient || this.prisma;
-
-    const captureLogic = async (tx: Prisma.TransactionClient) => {
+    const chargeLogic = async (tx: Prisma.TransactionClient) => {
       const wallet = await tx.technicianWallet.findUnique({
         where: { technicianId },
       });
 
       if (!wallet) throw new BadRequestException('Wallet not found');
       
-      // If reserved balance is less, we just capture whatever is reserved.
-      // This handles edge cases where commission was somehow miscalculated previously.
-      const captureAmount = Math.min(wallet.reservedBalance, amount);
-      if (captureAmount <= 0) return wallet;
-
       const balanceBefore = wallet.availableBalance; 
-      const balanceAfter = wallet.availableBalance;
+      const balanceAfter = balanceBefore - amount;
 
       const updatedWallet = await tx.technicianWallet.update({
         where: { id: wallet.id },
         data: {
-          reservedBalance: { decrement: captureAmount },
-          ledgerBalance: { decrement: captureAmount },
+          availableBalance: { decrement: amount },
         },
       });
 
       await tx.walletTransaction.create({
         data: {
           walletId: wallet.id,
-          type: 'COMMISSION_CAPTURE',
-          amount: -captureAmount, // Negative on ledger balance conceptually
+          type: 'CASH_COLLECTION_SETTLEMENT',
+          amount: -amount,
           balanceBefore,
           balanceAfter,
           referenceId: bookingId,
-          description: `Commission captured for completed booking ${bookingId}`,
+          description: `Platform dues deducted for cash booking ${bookingId}`,
         },
       });
 
@@ -186,60 +144,9 @@ export class WalletService {
     };
 
     if (txClient) {
-      return captureLogic(txClient);
+      return chargeLogic(txClient);
     } else {
-      return this.prisma.$transaction(captureLogic);
-    }
-  }
-
-  /**
-   * Releases a reserved amount back to available balance (e.g., when a job is cancelled).
-   */
-  async releaseReservedAmount(technicianId: string, amount: number, bookingId: string, txClient?: any) {
-    if (amount <= 0) return null;
-
-    const releaseLogic = async (tx: Prisma.TransactionClient) => {
-      const wallet = await tx.technicianWallet.findUnique({
-        where: { technicianId },
-      });
-
-      if (!wallet) throw new BadRequestException('Wallet not found');
-
-      const amountToRelease = Math.min(wallet.reservedBalance, amount);
-      const balanceBefore = wallet.availableBalance;
-      const balanceAfter = balanceBefore + amount;
-
-      const updatedCount = await tx.technicianWallet.updateMany({
-        where: { id: wallet.id, reservedBalance: { gte: amount } },
-        data: {
-          reservedBalance: { decrement: amount },
-          availableBalance: { increment: amount },
-        },
-      });
-
-      if (!updatedCount || updatedCount.count === 0) {
-        throw new BadRequestException('Insufficient reserved balance for release.');
-      }
-
-      await tx.walletTransaction.create({
-        data: {
-          walletId: wallet.id,
-          type: 'COMMISSION_RELEASE',
-          amount: amountToRelease,
-          balanceBefore,
-          balanceAfter,
-          referenceId: bookingId,
-          description: `Reserved commission released for booking ${bookingId}`,
-        },
-      });
-
-      return true;
-    };
-
-    if (txClient) {
-      return releaseLogic(txClient);
-    } else {
-      return this.prisma.$transaction(releaseLogic);
+      return this.prisma.$transaction(chargeLogic);
     }
   }
 
@@ -263,7 +170,6 @@ export class WalletService {
         where: { id: wallet.id },
         data: {
           availableBalance: { increment: amount },
-          ledgerBalance: { increment: amount },
         },
       });
 
@@ -286,6 +192,80 @@ export class WalletService {
       return earningLogic(txClient);
     } else {
       return this.prisma.$transaction(earningLogic);
+    }
+  }
+
+
+
+  /**
+   * Adds the final commission and GST to the Admin Wallet.
+   */
+  async addAdminSettlement(commission: number, tax: number, bookingId: string, txClient?: any) {
+    const totalAmount = commission + tax;
+    if (totalAmount <= 0) return null;
+
+    const adminLogic = async (tx: Prisma.TransactionClient) => {
+      // Find or create the primary admin wallet
+      let adminWallet = await tx.adminWallet.findFirst();
+      if (!adminWallet) {
+        adminWallet = await tx.adminWallet.create({
+          data: {
+            availableBalance: 0,
+            totalCommission: 0,
+            totalGstCollected: 0,
+          },
+        });
+      }
+
+      const balanceBefore = adminWallet.availableBalance;
+      let currentBalance = balanceBefore;
+
+      const updatedAdminWallet = await tx.adminWallet.update({
+        where: { id: adminWallet.id },
+        data: {
+          availableBalance: { increment: totalAmount },
+          totalCommission: { increment: commission },
+          totalGstCollected: { increment: tax },
+        },
+      });
+
+      if (commission > 0) {
+        await tx.adminWalletTransaction.create({
+          data: {
+            walletId: adminWallet.id,
+            type: 'PLATFORM_COMMISSION',
+            amount: commission,
+            balanceBefore: currentBalance,
+            balanceAfter: currentBalance + commission,
+            referenceId: bookingId,
+            description: `Platform commission for booking ${bookingId}`,
+          },
+        });
+        currentBalance += commission;
+      }
+
+      if (tax > 0) {
+        await tx.adminWalletTransaction.create({
+          data: {
+            walletId: adminWallet.id,
+            type: 'GST_COLLECTION',
+            amount: tax,
+            balanceBefore: currentBalance,
+            balanceAfter: currentBalance + tax,
+            referenceId: bookingId,
+            description: `GST collected for booking ${bookingId}`,
+          },
+        });
+        currentBalance += tax;
+      }
+
+      return updatedAdminWallet;
+    };
+
+    if (txClient) {
+      return adminLogic(txClient);
+    } else {
+      return this.prisma.$transaction(adminLogic);
     }
   }
 }

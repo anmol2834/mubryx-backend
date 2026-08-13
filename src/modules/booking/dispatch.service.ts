@@ -164,7 +164,6 @@ export class DispatchService {
           subtotal: booking.subtotal,
           discount: booking.discount,
           tax: booking.tax,
-          platformFee: booking.platformFee,
           totalAmount: booking.totalAmount,
         },
         totalAmount: booking.totalAmount,

@@ -55,10 +55,9 @@ export class CartService {
     });
 
     const itemCount = items.reduce((sum: number, i: any) => sum + i.quantity, 0);
-    const subtotal = items.reduce((sum: number, i: any) => sum + i.lineTotal, 0);
-    const tax = Math.round(subtotal * 0.05);
-    const platformFee = items.length > 0 ? 49 : 0;
-    const total = subtotal + tax + platformFee;
+    const subtotal = items.reduce((sum: number, item: any) => sum + item.lineTotal, 0);
+    const tax = Math.round(subtotal * 0.18);
+    const total = subtotal + tax;
 
     return {
       id: cart.id,
@@ -75,7 +74,6 @@ export class CartService {
         discount: 0,
         taxableAmount: subtotal,
         tax,
-        platformFee,
         total,
       },
     };

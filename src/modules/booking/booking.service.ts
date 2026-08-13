@@ -44,10 +44,9 @@ function generateOTP(): string {
 function calculatePricing(items: Array<{ unitPrice: number; quantity: number }>) {
   const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const discount = 0; // Coupon discount — reserved for future
-  const tax = Math.round(subtotal * 0.05);
-  const platformFee = items.length > 0 ? 49 : 0;
-  const totalAmount = subtotal - discount + tax + platformFee;
-  return { subtotal, discount, tax, platformFee, totalAmount };
+  const tax = Math.round(subtotal * 0.18);
+  const totalAmount = subtotal - discount + tax;
+  return { subtotal, discount, tax, totalAmount };
 }
 
 // ─── Response Formatter ───────────────────────────────────────────────────────
@@ -87,7 +86,6 @@ function formatBookingResponse(booking: any) {
       subtotal: booking.subtotal,
       discount: booking.discount,
       tax: booking.tax,
-      platformFee: booking.platformFee,
       total: booking.totalAmount,
     },
     customerNotes: booking.customerNotes ?? null,
@@ -284,7 +282,6 @@ export class BookingService {
             subtotal: pricing.subtotal,
             discount: pricing.discount,
             tax: pricing.tax,
-            platformFee: pricing.platformFee,
             totalAmount: pricing.totalAmount,
             couponCode: dto.couponCode ?? null,
             otp: generateOTP(),
