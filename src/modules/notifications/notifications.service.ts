@@ -36,6 +36,12 @@ export class NotificationsService {
       });
 
       if (existingToken) {
+        // Skip redundant database updates if token is already active for this user within the last 5 minutes
+        const isRecent = existingToken.updatedAt && (Date.now() - existingToken.updatedAt.getTime() < 300000);
+        if (existingToken.userId === userId && existingToken.isActive && isRecent) {
+          return { success: true, message: 'Device token already registered and active' };
+        }
+
         await this.prisma.devicePushToken.update({
           where: { pushToken },
           data: {
