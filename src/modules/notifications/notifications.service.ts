@@ -66,7 +66,10 @@ export class NotificationsService {
 
       return { success: true, message: 'Device registered successfully' };
     } catch (err: any) {
-      this.logger.error(`[NotificationsService] Error registering device token for user ${userId}:`, err?.message);
+      this.logger.error(
+        `[NotificationsService] Error registering device token for user ${userId}: ${err?.message}`,
+        err?.stack,
+      );
       return { success: false, message: 'Failed to persist device token' };
     }
   }
