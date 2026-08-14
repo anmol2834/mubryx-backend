@@ -65,6 +65,22 @@ export class BookingController {
   }
 
   /**
+   * GET /bookings/:id/technician-view
+   * Technician reads current authoritative booking state after receiving a notification tap.
+   * Authorization: technician must have a BookingDispatch record for this booking.
+   * Returns booking data + technician's dispatch status so the frontend can determine
+   * whether acceptance is still possible.
+   */
+  @Get(':id/technician-view')
+  async getBookingForTechnician(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    const technicianUserId = getCustomerId(user);
+    return this.bookingService.getBookingForTechnician(technicianUserId, id);
+  }
+
+  /**
    * GET /bookings/:id
    * Get booking details by internal ID (includes status history).
    */
@@ -94,29 +110,59 @@ export class BookingController {
 
   /**
    * POST /bookings/:id/accept
-   * Technician accepts a dispatched booking.
+   * Technician accepts a dispatched booking or service item.
    */
   @Post(':id/accept')
   @HttpCode(HttpStatus.OK)
   async acceptBooking(
     @CurrentUser() user: any,
     @Param('id') id: string,
+    @Body() body?: { bookingItemId?: string },
   ) {
     const technicianUserId = getCustomerId(user);
-    return this.assignmentService.acceptBooking(technicianUserId, id);
+    return this.assignmentService.acceptBooking(technicianUserId, id, body?.bookingItemId);
+  }
+
+  /**
+   * POST /bookings/items/:itemId/accept
+   * Technician accepts a specific dispatched service item.
+   */
+  @Post('items/:itemId/accept')
+  @HttpCode(HttpStatus.OK)
+  async acceptBookingItem(
+    @CurrentUser() user: any,
+    @Param('itemId') itemId: string,
+  ) {
+    const technicianUserId = getCustomerId(user);
+    return this.assignmentService.acceptBooking(technicianUserId, itemId, itemId);
   }
 
   /**
    * POST /bookings/:id/reject
-   * Technician rejects a dispatched booking.
+   * Technician rejects a dispatched booking or service item.
    */
   @Post(':id/reject')
   @HttpCode(HttpStatus.OK)
   async rejectBooking(
     @CurrentUser() user: any,
     @Param('id') id: string,
+    @Body() body?: { bookingItemId?: string },
   ) {
     const technicianUserId = getCustomerId(user);
-    return this.assignmentService.rejectBooking(technicianUserId, id);
+    return this.assignmentService.rejectBooking(technicianUserId, id, body?.bookingItemId);
+  }
+
+  /**
+   * POST /bookings/items/:itemId/reject
+   * Technician rejects a specific dispatched service item.
+   */
+  @Post('items/:itemId/reject')
+  @HttpCode(HttpStatus.OK)
+  async rejectBookingItem(
+    @CurrentUser() user: any,
+    @Param('itemId') itemId: string,
+  ) {
+    const technicianUserId = getCustomerId(user);
+    return this.assignmentService.rejectBooking(technicianUserId, itemId, itemId);
   }
 }

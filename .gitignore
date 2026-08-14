@@ -40,3 +40,15 @@ Thumbs.db
 .windsurf/
 skills-lock.json
 prisma.config.ts
+
+# Secrets & Credentials (Never commit to Git)
+*firebase-adminsdk*.json
+*firebase*.json
+!package.json
+!tsconfig.json
+!tsconfig.*.json
+!nest-cli.json
+!components.json
+*.pem
+*.key
+race-condition-test.js

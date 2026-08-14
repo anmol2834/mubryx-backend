@@ -646,25 +646,37 @@ export class TechniciansService {
         const distance = R * c;
 
         if (distance <= 30) {
-          await this.prisma.bookingDispatch.upsert({
-            where: {
-              bookingId_technicianId: {
-                bookingId: booking.id,
-                technicianId: profile.id,
-              },
-            },
-            update: {
-              status: 'OFFERED',
-              distanceKm: Number(distance.toFixed(1)),
-            },
-            create: {
-              bookingId: booking.id,
-              technicianId: profile.id,
-              distanceKm: Number(distance.toFixed(1)),
-              status: 'OFFERED',
-              expiresAt,
-            },
+          const matchingItems = booking.items.filter((item) => {
+            const isUnassigned = item.status === 'PENDING_MATCHING' || item.status === 'TECHNICIAN_SEARCHING';
+            const matchesSkill =
+              skillCategoryIds.length === 0 ||
+              (item.service?.categoryId && skillCategoryIds.includes(item.service.categoryId));
+            return isUnassigned && matchesSkill;
           });
+
+          for (const item of matchingItems) {
+            await this.prisma.bookingDispatch.upsert({
+              where: {
+                bookingItemId_technicianId: {
+                  bookingItemId: item.id,
+                  technicianId: profile.id,
+                },
+              },
+              update: {
+                status: 'OFFERED',
+                distanceKm: Number(distance.toFixed(1)),
+                bookingId: booking.id,
+              },
+              create: {
+                bookingId: booking.id,
+                bookingItemId: item.id,
+                technicianId: profile.id,
+                distanceKm: Number(distance.toFixed(1)),
+                status: 'OFFERED',
+                expiresAt,
+              },
+            });
+          }
         }
       }
     }
@@ -676,6 +688,11 @@ export class TechniciansService {
         booking: { status: 'TECHNICIAN_SEARCHING' },
       },
       include: {
+        bookingItem: {
+          include: {
+            service: true,
+          },
+        },
         booking: {
           include: {
             customer: {
@@ -695,41 +712,66 @@ export class TechniciansService {
     // 1. Proactively auto-clean stale incoming booking notifications
     const allNotifications = await this.prisma.notification.findMany({
       where: { recipientId: userId },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
-    const incomingBookingNotifs = allNotifications.filter(n => n.type === 'booking:incoming' && n.bookingId);
-    
+    const incomingBookingNotifs = allNotifications.filter((n) => n.type === 'booking:incoming' && n.bookingId);
+
     if (incomingBookingNotifs.length > 0) {
-      const bookingIds = incomingBookingNotifs.map(n => n.bookingId as string);
-      
-      // Fetch the current status of these bookings
-      const bookings = await this.prisma.booking.findMany({
-        where: {
-          id: { in: bookingIds }
-        },
-        select: { id: true, status: true }
-      });
+      const itemIds = incomingBookingNotifs
+        .map((n) => (n.metadata as any)?.bookingItemId)
+        .filter(Boolean) as string[];
+
+      const bookingIds = incomingBookingNotifs.map((n) => n.bookingId as string);
+
+      const [bookings, bookingItems] = await Promise.all([
+        this.prisma.booking.findMany({
+          where: { id: { in: bookingIds } },
+          select: { id: true, status: true },
+        }),
+        itemIds.length > 0
+          ? this.prisma.bookingItem.findMany({
+              where: { id: { in: itemIds } },
+              select: { id: true, status: true },
+            })
+          : [],
+      ]);
 
       const activeBookingIds = new Set(
         bookings
-          .filter(b => b.status === 'TECHNICIAN_SEARCHING' || b.status === 'PENDING_MATCHING')
-          .map(b => b.id)
+          .filter(
+            (b) =>
+              b.status === 'TECHNICIAN_SEARCHING' ||
+              b.status === 'PENDING_MATCHING' ||
+              b.status === 'PARTIALLY_ASSIGNED',
+          )
+          .map((b) => b.id),
+      );
+
+      const activeItemIds = new Set(
+        bookingItems
+          .filter((i) => i.status === 'TECHNICIAN_SEARCHING' || i.status === 'PENDING_MATCHING')
+          .map((i) => i.id),
       );
 
       // Identify stale notifications
       const staleNotifIds = incomingBookingNotifs
-        .filter(n => !activeBookingIds.has(n.bookingId as string))
-        .map(n => n.id);
+        .filter((n) => {
+          if (!activeBookingIds.has(n.bookingId as string)) return true;
+          const itemId = (n.metadata as any)?.bookingItemId;
+          if (itemId && !activeItemIds.has(itemId)) return true;
+          return false;
+        })
+        .map((n) => n.id);
 
       if (staleNotifIds.length > 0) {
         // Delete them from DB
         await this.prisma.notification.deleteMany({
-          where: { id: { in: staleNotifIds } }
+          where: { id: { in: staleNotifIds } },
         });
 
         // Filter them out of the return array
-        return allNotifications.filter(n => !staleNotifIds.includes(n.id));
+        return allNotifications.filter((n) => !staleNotifIds.includes(n.id));
       }
     }
 

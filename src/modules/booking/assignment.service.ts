@@ -16,58 +16,95 @@ export class AssignmentService {
     private readonly walletService: WalletService,
   ) {}
 
-  async acceptBooking(userId: string, bookingId: string) {
-    this.logger.log(`[AssignmentService] User ${userId} attempting to accept booking ${bookingId}`);
+  async acceptBooking(userId: string, targetId: string, bookingItemIdParam?: string) {
+    this.logger.log(`[AssignmentService] User ${userId} attempting to accept booking target=${targetId} item=${bookingItemIdParam}`);
 
     const technician = await this.prisma.technicianProfile.findUnique({
       where: { userId },
-      include: { user: true }
+      include: { user: true },
     });
 
     if (!technician) {
       throw new NotFoundException('Technician profile not found');
     }
 
-    const dispatch = await this.prisma.bookingDispatch.findUnique({
-      where: {
-        bookingId_technicianId: {
-          bookingId,
-          technicianId: technician.id,
+    // Resolve dispatch offer: either by bookingItemId or bookingId
+    let dispatch = null;
+    if (bookingItemIdParam) {
+      dispatch = await this.prisma.bookingDispatch.findUnique({
+        where: {
+          bookingItemId_technicianId: {
+            bookingItemId: bookingItemIdParam,
+            technicianId: technician.id,
+          },
         },
-      },
-    });
+      });
+    }
 
     if (!dispatch) {
-      throw new NotFoundException('Dispatch offer not found for this booking');
+      // Try treating targetId as bookingItemId
+      dispatch = await this.prisma.bookingDispatch.findUnique({
+        where: {
+          bookingItemId_technicianId: {
+            bookingItemId: targetId,
+            technicianId: technician.id,
+          },
+        },
+      });
+    }
+
+    if (!dispatch) {
+      // Fallback: search by bookingId for this technician with OFFERED status
+      dispatch = await this.prisma.bookingDispatch.findFirst({
+        where: {
+          bookingId: targetId,
+          technicianId: technician.id,
+          status: 'OFFERED',
+        },
+      });
+    }
+
+    if (!dispatch) {
+      throw new NotFoundException('Dispatch offer not found for this service');
     }
 
     if (dispatch.status !== 'OFFERED') {
       throw new ConflictException(`This offer is no longer valid (status: ${dispatch.status})`);
     }
 
-    // Removing expiration check to allow accepting from notification/nearby anytime
-    // as long as the booking itself is still available
+    const bookingItemId = dispatch.bookingItemId;
+    const bookingId = dispatch.bookingId;
 
-    // Atomic transaction
-    const result = await this.prisma.$transaction(async (tx) => {
-      // 1. Lock the booking and verify status
-      const booking = await tx.booking.findUnique({
-        where: { id: bookingId },
+    // Atomic transaction for assigning the specific item
+    const { updatedBooking, bookingItem } = await this.prisma.$transaction(async (tx) => {
+      // 1. Lock the booking item and verify availability
+      const item = await tx.bookingItem.findUnique({
+        where: { id: bookingItemId },
+        include: { booking: true },
       });
 
-      if (!booking || (booking.status !== 'TECHNICIAN_SEARCHING' && booking.status !== 'PENDING_MATCHING')) {
-        throw new ConflictException('Booking is no longer available');
+      if (!item || (item.status !== 'TECHNICIAN_SEARCHING' && item.status !== 'PENDING_MATCHING')) {
+        throw new ConflictException('This service item is no longer available');
       }
 
-      // Validate eligibility (20% of pre-GST subtotal)
-      const eligibilityAmount = booking.subtotal * 0.20;
-
-      // Validate funds from technician's wallet atomically without reserving
+      // Validate eligibility (20% of item line total)
+      const eligibilityAmount = item.lineTotal * 0.20;
       await this.walletService.validateEligibility(technician.id, eligibilityAmount, tx);
 
-      // 2. Update booking status and assigned technician atomically to prevent racing
-      const updatedCount = await tx.booking.updateMany({
-        where: { id: bookingId, status: booking.status },
+      // 2. Atomically claim the dispatch offer — only one technician can transition
+      //    the dispatch from OFFERED → ACCEPTED. If count = 0, another technician won.
+      const dispatchClaimed = await tx.bookingDispatch.updateMany({
+        where: { id: dispatch.id, status: 'OFFERED' },
+        data: { status: 'ACCEPTED', respondedAt: new Date() },
+      });
+
+      if (!dispatchClaimed || dispatchClaimed.count === 0) {
+        throw new ConflictException('This offer has already been accepted or has expired');
+      }
+
+      // 3. Update booking item status and assigned technician
+      const updatedCount = await tx.bookingItem.updateMany({
+        where: { id: bookingItemId, status: item.status },
         data: {
           status: 'TECHNICIAN_ASSIGNED',
           technicianId: technician.id,
@@ -77,27 +114,13 @@ export class AssignmentService {
       });
 
       if (!updatedCount || updatedCount.count === 0) {
-        throw new ConflictException('Booking was accepted by another technician');
+        throw new ConflictException('Service item was accepted by another technician');
       }
 
-      // Fetch the updated booking for event dispatching
-      const updatedBooking = await tx.booking.findUnique({
-        where: { id: bookingId }
-      });
-
-      // 3. Mark this dispatch as ACCEPTED
-      await tx.bookingDispatch.update({
-        where: { id: dispatch.id },
-        data: {
-          status: 'ACCEPTED',
-          respondedAt: new Date(),
-        },
-      });
-
-      // 4. Mark all other dispatches for this booking as SUPERSEDED
+      // 4. Mark all other dispatches for this booking item as SUPERSEDED
       await tx.bookingDispatch.updateMany({
         where: {
-          bookingId,
+          bookingItemId,
           id: { not: dispatch.id },
           status: 'OFFERED',
         },
@@ -106,62 +129,105 @@ export class AssignmentService {
         },
       });
 
-      // 5. Add to history
-      await tx.bookingStatusHistory.create({
+      // 5. Evaluate overall booking status across all items
+      const allItems = await tx.bookingItem.findMany({
+        where: { bookingId },
+      });
+
+      const unassignedRemaining = allItems.some(
+        (i) => i.id !== bookingItemId && (i.status === 'PENDING_MATCHING' || i.status === 'TECHNICIAN_SEARCHING'),
+      );
+
+      const newBookingStatus = unassignedRemaining ? 'PARTIALLY_ASSIGNED' : 'TECHNICIAN_ASSIGNED';
+
+      await tx.booking.update({
+        where: { id: bookingId },
         data: {
-          bookingId,
-          fromStatus: booking.status,
-          toStatus: 'TECHNICIAN_ASSIGNED',
-          changedBy: userId,
-          changedByType: 'TECHNICIAN',
-          reason: 'Technician accepted booking',
+          status: newBookingStatus,
+          technicianId: technician.id,
+          assignedAt: new Date(),
+          acceptedAt: new Date(),
         },
       });
 
-      return updatedBooking;
+      // 6. Record in status history
+      await tx.bookingStatusHistory.create({
+        data: {
+          bookingId,
+          fromStatus: item.booking.status,
+          toStatus: newBookingStatus,
+          changedBy: userId,
+          changedByType: 'TECHNICIAN',
+          reason: `Technician accepted service: ${item.serviceTitleSnapshot}`,
+          metadata: {
+            bookingItemId,
+            serviceTitle: item.serviceTitleSnapshot,
+            overallStatus: newBookingStatus,
+          },
+        },
+      });
+
+      const updated = await tx.booking.findUnique({
+        where: { id: bookingId },
+        include: { items: true },
+      });
+
+      return { updatedBooking: updated, bookingItem: item };
     });
 
-    this.logger.log(`[AssignmentService] Booking ${bookingId} successfully assigned to ${technician.id}`);
+    this.logger.log(
+      `[AssignmentService] BookingItem ${bookingItemId} on booking ${bookingId} successfully assigned to ${technician.id}`,
+    );
 
-    // Emit real-time events to ALL technicians to immediately clear their feeds
-    const allDispatches = await this.prisma.bookingDispatch.findMany({
-      where: { bookingId },
+    // Emit real-time events to all other technicians who received offer for this item
+    const allItemDispatches = await this.prisma.bookingDispatch.findMany({
+      where: { bookingItemId },
       include: { technician: { include: { user: true } } },
     });
 
-    for (const d of allDispatches) {
-      this.realtimeService.emitToTechnician(d.technician.user.id, 'booking:no-longer-available', {
-        bookingId,
-        reason: d.status === 'ACCEPTED' ? 'ACCEPTED_BY_YOU' : 'ASSIGNED_TO_OTHER',
-      });
-      
-      if (d.status !== 'ACCEPTED') {
-        // Silently send background push to cancel the alarm on other devices
-        this.notificationsService.sendBookingUpdate(
-          d.technician.user.id,
-          'Booking Assigned',
-          'This booking has been assigned to another technician.',
-          { type: 'booking:no-longer-available', bookingId }
-        );
+    for (const d of allItemDispatches) {
+      if (d.technician?.user?.id) {
+        this.realtimeService.emitToTechnician(d.technician.user.id, 'booking:no-longer-available', {
+          bookingId,
+          bookingItemId,
+          reason: d.status === 'ACCEPTED' ? 'ACCEPTED_BY_YOU' : 'ASSIGNED_TO_OTHER',
+        });
+
+        if (d.status !== 'ACCEPTED') {
+          this.notificationsService.sendBookingUpdate(
+            d.technician.user.id,
+            'Service Assigned',
+            `Service "${bookingItem.serviceTitleSnapshot}" has been assigned to another technician.`,
+            { type: 'booking:no-longer-available', bookingId, bookingItemId },
+          );
+        }
       }
     }
 
-    // Delete the incoming booking notifications for ALL technicians to clear their feeds
-    await this.prisma.notification.deleteMany({
+    // Delete the incoming booking notifications for this item for other technicians
+    const notificationsToDelete = await this.prisma.notification.findMany({
       where: {
         bookingId,
         type: 'booking:incoming',
       },
     });
 
+    for (const n of notificationsToDelete) {
+      const meta = n.metadata as any;
+      if (meta?.bookingItemId === bookingItemId && n.recipientId !== technician.user.id) {
+        await this.prisma.notification.delete({ where: { id: n.id } }).catch(() => null);
+      }
+    }
+
     // Emit to customer
     this.realtimeService.emitBookingEvent(bookingId, 'booking:assigned', {
       bookingId,
-      bookingNumber: result!.bookingNumber,
-      customerId: result!.customerId,
-      status: result!.status,
+      bookingItemId,
+      bookingNumber: updatedBooking!.bookingNumber,
+      customerId: updatedBooking!.customerId,
+      status: updatedBooking!.status,
       technicianId: technician.id,
-      updatedAt: result!.updatedAt.toISOString(),
+      updatedAt: updatedBooking!.updatedAt.toISOString(),
       engineer: {
         name: technician.user.name || 'Technician',
         photo: technician.profilePhoto || null,
@@ -172,32 +238,57 @@ export class AssignmentService {
       },
     });
 
-    // Invalidate technician's performance metrics (acceptance rate changes after accepting)
+    // Invalidate technician's performance metrics
     this.realtimeService.emitToTechnician(technician.user.id, REALTIME_EVENTS.TECHNICIAN.PERFORMANCE_UPDATED, {
       technicianId: technician.id,
       triggeredBy: 'booking_accepted',
       bookingId,
+      bookingItemId,
       updatedAt: new Date().toISOString(),
     });
 
-    return result;
+    return updatedBooking;
   }
 
-  async rejectBooking(userId: string, bookingId: string) {
+  async rejectBooking(userId: string, targetId: string, bookingItemIdParam?: string) {
     const technician = await this.prisma.technicianProfile.findUnique({
       where: { userId },
     });
 
     if (!technician) throw new NotFoundException('Technician profile not found');
 
-    const dispatch = await this.prisma.bookingDispatch.findUnique({
-      where: {
-        bookingId_technicianId: {
-          bookingId,
-          technicianId: technician.id,
+    let dispatch = null;
+    if (bookingItemIdParam) {
+      dispatch = await this.prisma.bookingDispatch.findUnique({
+        where: {
+          bookingItemId_technicianId: {
+            bookingItemId: bookingItemIdParam,
+            technicianId: technician.id,
+          },
         },
-      },
-    });
+      });
+    }
+
+    if (!dispatch) {
+      dispatch = await this.prisma.bookingDispatch.findUnique({
+        where: {
+          bookingItemId_technicianId: {
+            bookingItemId: targetId,
+            technicianId: technician.id,
+          },
+        },
+      });
+    }
+
+    if (!dispatch) {
+      dispatch = await this.prisma.bookingDispatch.findFirst({
+        where: {
+          bookingId: targetId,
+          technicianId: technician.id,
+          status: 'OFFERED',
+        },
+      });
+    }
 
     if (!dispatch) {
       throw new NotFoundException('Dispatch offer not found');
@@ -215,7 +306,7 @@ export class AssignmentService {
       },
     });
 
-    // Emit performance update — rejecting a booking affects acceptance rate
+    // Emit performance update
     const techWithUser = await this.prisma.technicianProfile.findUnique({
       where: { id: technician.id },
       include: { user: { select: { id: true } } },
@@ -224,7 +315,8 @@ export class AssignmentService {
       this.realtimeService.emitToTechnician(techWithUser.user.id, REALTIME_EVENTS.TECHNICIAN.PERFORMANCE_UPDATED, {
         technicianId: technician.id,
         triggeredBy: 'booking_rejected',
-        bookingId,
+        bookingId: dispatch.bookingId,
+        bookingItemId: dispatch.bookingItemId,
         updatedAt: new Date().toISOString(),
       });
     }
@@ -232,3 +324,4 @@ export class AssignmentService {
     return { success: true };
   }
 }
+

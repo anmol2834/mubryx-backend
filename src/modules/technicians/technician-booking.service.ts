@@ -56,7 +56,10 @@ export class TechnicianBookingService {
 
     const bookings = await this.prisma.booking.findMany({
       where: {
-        technicianId: technician.id,
+        OR: [
+          { technicianId: technician.id },
+          { items: { some: { technicianId: technician.id } } },
+        ],
         ...(Object.keys(statusFilter).length > 0 ? { status: statusFilter } : {}),
       },
       include: {
@@ -87,7 +90,11 @@ export class TechnicianBookingService {
       throw new NotFoundException('Booking not found');
     }
 
-    if (booking.technicianId !== technician.id) {
+    const hasAccess =
+      booking.technicianId === technician.id ||
+      booking.items?.some((item: any) => item.technicianId === technician.id);
+
+    if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this booking');
     }
 

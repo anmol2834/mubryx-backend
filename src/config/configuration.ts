@@ -41,6 +41,13 @@ export default () => ({
   sms: {
     provider: process.env['SMS_PROVIDER'] ?? 'mock',
   },
+  firebase: {
+    serviceAccountKey: process.env['FIREBASE_SERVICE_ACCOUNT_KEY'],
+    serviceAccountPath: process.env['FIREBASE_SERVICE_ACCOUNT_PATH'] || process.env['GOOGLE_APPLICATION_CREDENTIALS'],
+    projectId: process.env['FIREBASE_PROJECT_ID'] || 'mubryx-alliance',
+    clientEmail: process.env['FIREBASE_CLIENT_EMAIL'],
+    privateKey: process.env['FIREBASE_PRIVATE_KEY'],
+  },
   urls: {
     customerApp: process.env['CUSTOMER_APP_URL'],
     technicianApp: process.env['TECHNICIAN_APP_URL'],

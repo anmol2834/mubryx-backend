@@ -15,10 +15,12 @@ export type AuthenticatedSocket = Socket<any, any, any, SocketData>;
 
 export interface BookingEventPayload {
   bookingId: string;
+  bookingItemId?: string | null;
   bookingNumber: string;
   customerId: string;
   technicianId?: string | null;
   status: string;
+  itemStatus?: string | null;
   previousStatus?: string | null;
   totalAmount?: number;
   serviceAddress?: {

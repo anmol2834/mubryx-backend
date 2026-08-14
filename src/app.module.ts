@@ -20,6 +20,7 @@ import { BookingModule } from './modules/booking/booking.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { WalletModule } from './modules/wallet/wallet.module';
+import { FirebaseModule } from './infrastructure/firebase/firebase.module';
 
 import configuration from './config/configuration';
 
@@ -53,6 +54,7 @@ import configuration from './config/configuration';
     BookingModule,
     NotificationsModule,
     WalletModule,
+    FirebaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],

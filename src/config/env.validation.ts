@@ -51,6 +51,12 @@ export const envValidationSchema = Joi.object({
 
   SMS_PROVIDER: Joi.string().valid('mock', 'msg91', 'twilio').default('mock'),
 
+  FIREBASE_SERVICE_ACCOUNT_KEY: Joi.string().optional(),
+  FIREBASE_SERVICE_ACCOUNT_PATH: Joi.string().optional(),
+  FIREBASE_PROJECT_ID: Joi.string().optional().default('mubryx-alliance'),
+  FIREBASE_CLIENT_EMAIL: Joi.string().optional(),
+  FIREBASE_PRIVATE_KEY: Joi.string().optional(),
+
   CUSTOMER_APP_URL: Joi.string().optional(),
   TECHNICIAN_APP_URL: Joi.string().optional(),
   ADMIN_APP_URL: Joi.string().optional(),

@@ -20,6 +20,7 @@ import {
 const CANCELLABLE_STATUSES: BookingStatus[] = [
   'PENDING_MATCHING',
   'TECHNICIAN_SEARCHING',
+  'PARTIALLY_ASSIGNED',
   'TECHNICIAN_ASSIGNED',
 ];
 
@@ -81,6 +82,22 @@ function formatBookingResponse(booking: any) {
       unitPrice: item.unitPrice,
       discount: item.discount,
       lineTotal: item.lineTotal,
+      status: item.status,
+      technicianId: item.technicianId ?? null,
+      technician: item.technician
+        ? {
+            id: item.technician.id,
+            fullName: item.technician.fullName,
+            profilePhoto: item.technician.profilePhoto,
+            rating: item.technician.rating,
+          }
+        : null,
+      assignedAt: item.assignedAt ?? null,
+      acceptedAt: item.acceptedAt ?? null,
+      startedAt: item.startedAt ?? null,
+      completedAt: item.completedAt ?? null,
+      cancelledAt: item.cancelledAt ?? null,
+      cancellationReason: item.cancellationReason ?? null,
     })),
     pricing: {
       subtotal: booking.subtotal,
@@ -90,6 +107,14 @@ function formatBookingResponse(booking: any) {
     },
     customerNotes: booking.customerNotes ?? null,
     technicianId: booking.technicianId ?? null,
+    technician: booking.technician
+      ? {
+          id: booking.technician.id,
+          fullName: booking.technician.fullName,
+          profilePhoto: booking.technician.profilePhoto,
+          rating: booking.technician.rating,
+        }
+      : null,
     otp: booking.otp ?? null,
     happyCode: booking.happyCode ?? null,
     cancelledAt: booking.cancelledAt ?? null,
@@ -296,6 +321,7 @@ export class BookingService {
         await tx.bookingItem.createMany({
           data: pricedItems.map((item) => ({
             bookingId: booking.id,
+            status: 'TECHNICIAN_SEARCHING',
             ...item,
           })),
         });
@@ -398,6 +424,7 @@ export class BookingService {
         in: [
           'PENDING_MATCHING',
           'TECHNICIAN_SEARCHING',
+          'PARTIALLY_ASSIGNED',
           'TECHNICIAN_ASSIGNED',
           'TECHNICIAN_ACCEPTED',
           'TECHNICIAN_ON_THE_WAY',
@@ -415,7 +442,10 @@ export class BookingService {
 
     const bookings = await this.prisma.booking.findMany({
       where,
-      include: { items: true, technician: true },
+      include: {
+        items: { include: { technician: true } },
+        technician: true,
+      },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
@@ -429,7 +459,7 @@ export class BookingService {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
-        items: true,
+        items: { include: { technician: true } },
         technician: true,
         statusHistory: { orderBy: { createdAt: 'asc' } },
       },
@@ -534,5 +564,84 @@ export class BookingService {
     });
 
     return formatted;
+  }
+
+  // ─── Technician Booking View ─────────────────────────────────────────────────
+  // Used by the notification-tap flow: technician reads bookingId from FCM payload
+  // and fetches current authoritative state. Authorized by BookingDispatch record.
+
+  async getBookingForTechnician(userId: string, bookingId: string) {
+    // 1. Resolve technician profile from JWT userId
+    const technician = await this.prisma.technicianProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!technician) {
+      throw new ForbiddenException({
+        message: 'Technician profile not found.',
+        errorCode: 'TECHNICIAN_NOT_FOUND',
+      });
+    }
+
+    // 2. Load the booking with all required relations
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        items: {
+          include: {
+            technician: true,
+            dispatches: {
+              where: { technicianId: technician.id },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
+        },
+        technician: true,
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException({
+        message: 'Booking not found.',
+        errorCode: 'BOOKING_NOT_FOUND',
+      });
+    }
+
+    // 3. Authorization: technician must have at least one BookingDispatch for this booking
+    const dispatch = await this.prisma.bookingDispatch.findFirst({
+      where: {
+        bookingId,
+        technicianId: technician.id,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!dispatch) {
+      throw new ForbiddenException({
+        message: 'You are not authorized to view this booking.',
+        errorCode: 'BOOKING_ACCESS_DENIED',
+      });
+    }
+
+    // 4. Return technician-safe booking view
+    // Include dispatch status so the frontend knows whether acceptance is still possible
+    const formatted = formatBookingResponse(booking);
+
+    return {
+      ...formatted,
+      // Technician-specific dispatch context
+      dispatchStatus: dispatch.status,
+      dispatchExpiresAt: dispatch.expiresAt,
+      dispatchId: dispatch.id,
+      // Normalised fields consumed by IncomingBookingModal
+      serviceSummary: booking.items[0]?.serviceTitleSnapshot ?? 'Service Request',
+      totalAmount: booking.totalAmount,
+      distanceKm: dispatch.distanceKm,
+      customerArea: booking.snapshotCity ?? 'Nearby',
+      bookingItemId: booking.items.find(
+        (i) => i.dispatches?.[0]?.technicianId === technician.id
+      )?.id ?? booking.items[0]?.id ?? null,
+    };
   }
 }
