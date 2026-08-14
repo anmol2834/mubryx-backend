@@ -707,6 +707,7 @@ export class TechniciansService {
             customer: {
               select: { name: true, phone: true },
             },
+            address: true,
             items: true,
           },
         },

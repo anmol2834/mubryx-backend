@@ -64,6 +64,7 @@ export class TechnicianBookingService {
       },
       include: {
         customer: true,
+        address: true,
         items: { include: { service: true } },
       },
       orderBy: { scheduledAt: 'asc' },
