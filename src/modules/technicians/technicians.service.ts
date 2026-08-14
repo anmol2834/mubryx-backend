@@ -192,7 +192,7 @@ export class TechniciansService {
       where: {
         technicianId: profile.id,
         status: { in: ['TECHNICIAN_ASSIGNED', 'TECHNICIAN_ACCEPTED'] },
-        id: { not: activeJob?.id || undefined },
+        ...(activeJob ? { id: { not: activeJob.id } } : {}),
       },
       orderBy: { scheduledAt: 'asc' },
       take: 5,
@@ -576,7 +576,10 @@ export class TechniciansService {
   }
 
   async updateStatus(userId: string, isOnline: boolean) {
-    const profile = await this.getProfile(userId);
+    const profile = await this.prisma.technicianProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
     if (!profile) throw new BadRequestException('Technician profile not found');
 
     return this.prisma.technicianProfile.update({
@@ -586,7 +589,10 @@ export class TechniciansService {
   }
 
   async updateLocation(userId: string, latitude: number, longitude: number) {
-    const profile = await this.getProfile(userId);
+    const profile = await this.prisma.technicianProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
     if (!profile) throw new BadRequestException('Technician profile not found');
 
     return this.prisma.technicianProfile.update({
@@ -600,7 +606,10 @@ export class TechniciansService {
   }
 
   async getNearbyLeads(userId: string) {
-    const profile = await this.getProfile(userId);
+    const profile = await this.prisma.technicianProfile.findUnique({
+      where: { userId },
+      include: { skills: true },
+    });
     if (!profile) throw new BadRequestException('Technician profile not found');
 
     const techSkills = profile.skills || [];
