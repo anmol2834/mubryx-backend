@@ -11,6 +11,7 @@ import { RealtimeService } from '../../realtime/services/realtime.service';
 import { REALTIME_EVENTS } from '../../realtime/constants/realtime-events.constant';
 import { BookingStatus, BookingSparePart } from '../../generated/prisma/client';
 import { WalletService } from '../wallet/wallet.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -21,11 +22,13 @@ export class TechnicianBookingService {
     private readonly prisma: PrismaService,
     private readonly realtimeService: RealtimeService,
     private readonly walletService: WalletService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private async getTechnicianProfile(userId: string) {
     const technician = await this.prisma.technicianProfile.findUnique({
       where: { userId },
+      include: { user: true },
     });
     if (!technician) {
       throw new ForbiddenException('Technician profile not found');
@@ -190,6 +193,8 @@ export class TechnicianBookingService {
       return b;
     });
 
+    const techName = technician.user?.name || 'Your technician';
+
     this.realtimeService.emitBookingEvent(bookingId, REALTIME_EVENTS.BOOKING.STATUS_CHANGED, {
       bookingId,
       bookingNumber: booking.bookingNumber,
@@ -198,8 +203,53 @@ export class TechnicianBookingService {
       status: nextStatus,
       previousStatus: booking.status,
       happyCode: updatedBooking!.happyCode, // Pass happy code to customer track service
+      technician: {
+        id: technician.id,
+        fullName: techName,
+        phone: technician.user?.phone || null,
+        profilePhoto: technician.profilePhoto || null,
+      },
       updatedAt: new Date().toISOString(),
     });
+
+    // Asynchronous non-blocking push notification to customer
+    if (booking.customerId) {
+      let pushTitle = 'Booking Update';
+      let pushBody = `Your booking #${booking.bookingNumber} status was updated to ${nextStatus}.`;
+
+      switch (nextStatus) {
+        case 'TECHNICIAN_ON_THE_WAY':
+          pushTitle = 'Technician En Route 🚗';
+          pushBody = `${techName} is on the way to your address.`;
+          break;
+        case 'TECHNICIAN_ARRIVED':
+          pushTitle = 'Technician Arrived 📍';
+          pushBody = `${techName} has arrived at your location.`;
+          break;
+        case 'SERVICE_STARTED':
+          pushTitle = 'Service Started ⚡';
+          pushBody = `Your service has officially begun.`;
+          break;
+        case 'SERVICE_COMPLETED':
+        case 'COMPLETED':
+          pushTitle = 'Service Completed 🎉';
+          pushBody = `Your service #${booking.bookingNumber} has been successfully completed.`;
+          break;
+      }
+
+      this.notificationsService
+        .sendBookingUpdate(booking.customerId, pushTitle, pushBody, {
+          type: 'BOOKING_STATUS_UPDATE',
+          bookingId,
+          status: nextStatus,
+          happyCode: updatedBooking?.happyCode,
+          technicianId: technician.id,
+          technicianName: techName,
+        })
+        .catch((err) => {
+          this.logger.warn(`Failed to dispatch customer push notification: ${err?.message}`);
+        });
+    }
 
     // After any terminal status transition, invalidate the technician's performance cache
     // so the UI reflects updated metrics (jobsCompleted, completionRate) in realtime

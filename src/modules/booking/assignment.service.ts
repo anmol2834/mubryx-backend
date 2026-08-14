@@ -238,6 +238,30 @@ export class AssignmentService {
       },
     });
 
+    // Notify customer via FCM push
+    if (updatedBooking?.customerId) {
+      const techName = technician.user.name || 'A technician';
+      this.notificationsService
+        .sendBookingUpdate(
+          updatedBooking.customerId,
+          'Technician Assigned! 🛠️',
+          `${techName} has been assigned to your service request #${updatedBooking.bookingNumber}.`,
+          {
+            type: 'BOOKING_STATUS_UPDATE',
+            bookingId,
+            bookingItemId,
+            status: updatedBooking.status,
+            technicianId: technician.id,
+            technicianName: techName,
+          },
+        )
+        .catch((err) => {
+          this.logger.warn(
+            `Failed to dispatch push notification to customer ${updatedBooking?.customerId}: ${err?.message}`,
+          );
+        });
+    }
+
     // Invalidate technician's performance metrics
     this.realtimeService.emitToTechnician(technician.user.id, REALTIME_EVENTS.TECHNICIAN.PERFORMANCE_UPDATED, {
       technicianId: technician.id,
