@@ -8,7 +8,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 @ApiTags('Wallet')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/technicians/wallet')
+@Controller('technicians/wallet')
 export class WalletController {
   constructor(
     private readonly walletService: WalletService,

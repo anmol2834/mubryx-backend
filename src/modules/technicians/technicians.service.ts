@@ -80,6 +80,11 @@ export class TechniciansService {
         data: {
           userId: user.id,
           fullName: user.name,
+          wallet: {
+            create: {
+              availableBalance: 0.0,
+            }
+          }
         },
       });
     }
@@ -155,9 +160,18 @@ export class TechniciansService {
     const performance = await this.getPerformance(userId);
 
     // Fetch Wallet
-    const wallet = await this.prisma.technicianWallet.findUnique({
+    let wallet = await this.prisma.technicianWallet.findUnique({
       where: { technicianId: profile.id },
     });
+
+    if (!wallet) {
+      wallet = await this.prisma.technicianWallet.create({
+        data: {
+          technicianId: profile.id,
+          availableBalance: 0.0,
+        },
+      });
+    }
 
     // Fetch Active Jobs and determine highest priority
     const activeJobs = await this.prisma.booking.findMany({
@@ -218,7 +232,8 @@ export class TechniciansService {
       assignedJobs: performance.jobsCompleted, // Map to semantic usage on frontend
       completedJobs: performance.jobsCompleted,
       pendingJobs: upcomingJobs.length,
-      earnings: performance.totalEarnings,
+      earnings: performance.todayEarnings, // Map to daily earnings for home page Today Summary
+      lifetimeEarnings: performance.totalEarnings,
       averageRating: performance.averageRating,
       acceptanceRate: performance.acceptanceRate,
       activeJob,
@@ -275,6 +290,18 @@ export class TechniciansService {
       _sum: { amount: true },
     });
     const totalEarnings = earningsResult._sum.amount ?? 0;
+
+    // ── Today's Earnings (Daily, from completed bookings today) ──────────────────
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEarningsResult = await this.prisma.walletTransaction.aggregate({
+      where: {
+        wallet: { technicianId },
+        type: 'JOB_EARNING',
+        createdAt: { gte: todayStart },
+      },
+      _sum: { amount: true },
+    });
+    const todayEarnings = todayEarningsResult._sum.amount ?? 0;
 
     // ── Acceptance Rate (Last 30 days) ────────────────────────────────────────
     // Denominator: dispatches with terminal outcomes that the technician was
@@ -356,6 +383,7 @@ export class TechniciansService {
     return {
       jobsCompleted,
       thisMonthJobs,
+      todayEarnings,
       totalEarnings,
       acceptanceRate,
       completionRate,
@@ -811,9 +839,18 @@ export class TechniciansService {
 
     if (!profile) throw new BadRequestException('Technician profile not found');
 
-    const wallet = await this.prisma.technicianWallet.findUnique({
+    let wallet = await this.prisma.technicianWallet.findUnique({
       where: { technicianId: profile.id }
     });
+
+    if (!wallet) {
+      wallet = await this.prisma.technicianWallet.create({
+        data: {
+          technicianId: profile.id,
+          availableBalance: 0.0,
+        },
+      });
+    }
 
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -822,7 +859,7 @@ export class TechniciansService {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const transactions = await this.prisma.walletTransaction.findMany({
-      where: { walletId: wallet?.id, type: 'JOB_EARNING' },
+      where: { walletId: wallet.id },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -842,20 +879,33 @@ export class TechniciansService {
     const bookingMap = new Map(bookings.map(b => [b.id, b]));
 
     for (const tx of transactions) {
-      const amount = tx.amount;
-      lifetime += amount;
-      if (tx.createdAt >= todayStart) today += amount;
-      if (tx.createdAt >= weekStart) thisWeek += amount;
-      if (tx.createdAt >= monthStart) thisMonth += amount;
+      if (tx.type === 'JOB_EARNING') {
+        const amount = tx.amount;
+        lifetime += amount;
+        if (tx.createdAt >= todayStart) today += amount;
+        if (tx.createdAt >= weekStart) thisWeek += amount;
+        if (tx.createdAt >= monthStart) thisMonth += amount;
+      }
 
       const booking = tx.referenceId ? bookingMap.get(tx.referenceId) : null;
-      const serviceName = booking?.items[0]?.service?.title || tx.description || 'Service';
-      const categoryName = booking?.items[0]?.service?.Category?.name || 'Category';
+      let serviceName = booking?.items[0]?.service?.title || tx.description || 'Service';
+      let categoryName = booking?.items[0]?.service?.Category?.name || 'Category';
+
+      if (tx.type === 'RECHARGE') {
+        serviceName = 'Wallet Recharge';
+        categoryName = 'Wallet';
+      } else if (tx.type === 'WITHDRAWAL') {
+        serviceName = 'Payout Withdrawal';
+        categoryName = 'Payout';
+      } else if (tx.type === 'CASH_COLLECTION_SETTLEMENT') {
+        serviceName = 'Platform Commission Deduction';
+        categoryName = 'Settlement';
+      }
 
       mappedTransactions.push({
         id: tx.id,
         bookingId: tx.referenceId || tx.id,
-        customerName: booking?.customer?.name || 'Customer',
+        customerName: booking?.customer?.name || (tx.type === 'RECHARGE' ? 'Self' : 'Mubryx Platform'),
         serviceName,
         applianceName: categoryName,
         amount: tx.amount,
