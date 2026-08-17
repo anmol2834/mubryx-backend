@@ -243,6 +243,106 @@ export class TechniciansService {
     };
   }
 
+  async getP0Dashboard(userId: string) {
+    const profile = await this.prisma.technicianProfile.findUnique({
+      where: { userId },
+      select: {
+        id: true,
+        fullName: true,
+        isOnline: true,
+        onboardingStatus: true,
+        userId: true,
+        rating: true,
+      },
+    });
+
+    if (!profile) {
+      throw new BadRequestException('Technician profile not found');
+    }
+
+    // Fast query for single highest-priority active job
+    const activeJob = await this.prisma.booking.findFirst({
+      where: {
+        technicianId: profile.id,
+        status: { in: ['SERVICE_STARTED', 'TECHNICIAN_ARRIVED', 'TECHNICIAN_ON_THE_WAY', 'TECHNICIAN_ACCEPTED'] },
+      },
+      orderBy: { scheduledAt: 'asc' },
+      include: {
+        customer: { select: { name: true, phone: true } },
+        address: true,
+        items: { include: { service: true } },
+      },
+    });
+
+    // Upcoming jobs (assigned/accepted but not active)
+    const upcomingJobs = await this.prisma.booking.findMany({
+      where: {
+        technicianId: profile.id,
+        status: { in: ['TECHNICIAN_ASSIGNED', 'TECHNICIAN_ACCEPTED'] },
+        ...(activeJob ? { id: { not: activeJob.id } } : {}),
+      },
+      orderBy: { scheduledAt: 'asc' },
+      take: 3,
+      include: {
+        customer: { select: { name: true, phone: true } },
+        address: true,
+        items: { include: { service: true } },
+      },
+    });
+
+    // Count assigned active jobs currently assigned to technician
+    const activeAssignedCount = await this.prisma.booking.count({
+      where: {
+        technicianId: profile.id,
+        status: { in: ['TECHNICIAN_ASSIGNED', 'TECHNICIAN_ACCEPTED', 'TECHNICIAN_ON_THE_WAY', 'TECHNICIAN_ARRIVED', 'SERVICE_STARTED'] },
+      },
+    });
+
+    const [todayCompleted] = await Promise.all([
+      this.prisma.booking.count({
+        where: {
+          technicianId: profile.id,
+          status: { in: ['COMPLETED', 'SERVICE_COMPLETED'] },
+        },
+      }),
+    ]);
+
+    return {
+      id: profile.id,
+      userId: profile.userId,
+      fullName: profile.fullName,
+      isOnline: profile.isOnline,
+      onboardingStatus: profile.onboardingStatus,
+      rating: profile.rating,
+      activeJob,
+      upcomingJobs,
+      todaySummary: {
+        assignedJobs: activeAssignedCount + upcomingJobs.length,
+        completedJobs: todayCompleted,
+        pendingJobs: upcomingJobs.length,
+      },
+    };
+  }
+
+  async getP1Dashboard(userId: string) {
+    const [performance, earningsRes] = await Promise.all([
+      this.getPerformance(userId),
+      this.getEarnings(userId),
+    ]);
+
+    const todayEarnings = earningsRes?.summary?.today ?? performance.todayEarnings;
+
+    return {
+      earnings: todayEarnings,
+      lifetimeEarnings: performance.totalEarnings,
+      averageRating: performance.averageRating,
+      acceptanceRate: performance.acceptanceRate,
+      completedJobs: performance.jobsCompleted,
+      totalJobs: performance.jobsCompleted,
+    };
+  }
+
+
   async getPerformance(userId: string) {
     // Resolve technician profile ID from userId (JWT subject)
     const profile = await this.prisma.technicianProfile.findUnique({
@@ -633,7 +733,10 @@ export class TechniciansService {
     });
   }
 
-  async getNearbyLeads(userId: string) {
+  async getNearbyLeads(
+    userId: string,
+    options?: { limit?: number; cursor?: string; sort?: string; category?: string }
+  ) {
     const profile = await this.prisma.technicianProfile.findUnique({
       where: { userId },
       include: { skills: true },
@@ -718,12 +821,38 @@ export class TechniciansService {
       }
     }
 
+    // Build filter conditions
+    const limit = Math.min(Math.max(options?.limit ?? 20, 1), 50);
+    const category = options?.category;
+    const sort = options?.sort ?? 'nearest';
+    const cursor = options?.cursor;
+
+    const whereCondition: any = {
+      technicianId: profile.id,
+      status: 'OFFERED',
+      booking: { status: 'TECHNICIAN_SEARCHING' },
+    };
+
+    if (category && category.trim()) {
+      const catTrim = category.trim();
+      whereCondition.bookingItem = {
+        OR: [
+          { categoryNameSnapshot: { contains: catTrim, mode: 'insensitive' } },
+          { service: { category: { name: { contains: catTrim, mode: 'insensitive' } } } },
+        ],
+      };
+    }
+
+    // Order by clause
+    let orderBy: any[] = [{ createdAt: 'desc' }, { id: 'desc' }];
+    if (sort === 'nearest') {
+      orderBy = [{ distanceKm: 'asc' }, { createdAt: 'desc' }, { id: 'desc' }];
+    } else if (sort === 'highest_price') {
+      orderBy = [{ booking: { totalAmount: 'desc' } }, { createdAt: 'desc' }, { id: 'desc' }];
+    }
+
     const dispatches = await this.prisma.bookingDispatch.findMany({
-      where: {
-        technicianId: profile.id,
-        status: 'OFFERED',
-        booking: { status: 'TECHNICIAN_SEARCHING' },
-      },
+      where: whereCondition,
       include: {
         bookingItem: {
           include: {
@@ -740,11 +869,28 @@ export class TechniciansService {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy,
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
 
-    return dispatches;
+    let hasMore = false;
+    let nextCursor: string | null = null;
+
+    let items = dispatches;
+    if (items.length > limit) {
+      hasMore = true;
+      items = items.slice(0, limit);
+      nextCursor = items[items.length - 1].id;
+    }
+
+    return {
+      items,
+      nextCursor,
+      hasMore,
+    };
   }
+
 
   async getNotifications(userId: string) {
     // 1. Proactively auto-clean stale incoming booking notifications

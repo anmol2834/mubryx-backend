@@ -5,6 +5,7 @@ import {
   Patch,
   Put,
   Body,
+  Query,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -53,6 +54,24 @@ export class TechniciansController {
   @ApiResponse({ status: 200, description: 'OTP verified successfully' })
   async verifyOtp(@Body() dto: TechnicianVerifyOtpDto) {
     return this.techniciansService.verifyOtp(dto);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('dashboard/p0')
+  @ApiOperation({ summary: 'Get P0 immediate technician dashboard data (Profile basic info, Active job, Today summary)' })
+  async getP0Dashboard(@CurrentUser() user: any) {
+    const userId = getUserIdFromUser(user);
+    return this.techniciansService.getP0Dashboard(userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('dashboard/p1')
+  @ApiOperation({ summary: 'Get P1 non-blocking technician metrics (Earnings, Rating, Acceptance rate)' })
+  async getP1Dashboard(@CurrentUser() user: any) {
+    const userId = getUserIdFromUser(user);
+    return this.techniciansService.getP1Dashboard(userId);
   }
 
   @ApiBearerAuth()
@@ -189,10 +208,21 @@ export class TechniciansController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('nearby-leads')
-  @ApiOperation({ summary: 'Get nearby incoming bookings for technician' })
-  async getNearbyLeads(@CurrentUser() user: any) {
+  @ApiOperation({ summary: 'Get nearby incoming bookings for technician with cursor pagination & filtering' })
+  async getNearbyLeads(
+    @CurrentUser() user: any,
+    @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
+    @Query('sort') sort?: string,
+    @Query('category') category?: string,
+  ) {
     const userId = getUserIdFromUser(user);
-    return this.techniciansService.getNearbyLeads(userId);
+    return this.techniciansService.getNearbyLeads(userId, {
+      limit: limit ? parseInt(limit, 10) : undefined,
+      cursor,
+      sort,
+      category,
+    });
   }
 
   @ApiBearerAuth()

@@ -152,6 +152,10 @@ export class TechnicianBookingService {
       });
 
       if (!updatedCount || updatedCount.count === 0) {
+        const checkBooking = await tx.booking.findUnique({ where: { id: bookingId } });
+        if (checkBooking && checkBooking.status === nextStatus) {
+          return checkBooking;
+        }
         throw new ConflictException('Booking status was already changed by another request');
       }
 
