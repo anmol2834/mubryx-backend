@@ -137,3 +137,8 @@ export type AdminWallet = Prisma.AdminWalletModel
  * 
  */
 export type AdminWalletTransaction = Prisma.AdminWalletTransactionModel
+/**
+ * Model Review
+ * 
+ */
+export type Review = Prisma.ReviewModel

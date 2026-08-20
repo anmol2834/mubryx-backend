@@ -8,7 +8,7 @@ export class DevelopmentOtpProvider implements OtpProvider {
 
   constructor(private readonly config: ConfigService) {}
 
-  async sendOtp(phone: string, otp: string): Promise<void> {
+  async sendOtp(phone: string, otp: string, template?: string): Promise<void> {
     const fixedOtp = this.config.get<string>('CUSTOMER_DEV_OTP', '000000');
     
     // Warn if the generated OTP differs from the fixed dev OTP (though OtpService should handle this)

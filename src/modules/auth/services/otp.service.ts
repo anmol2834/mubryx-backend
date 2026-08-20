@@ -2,6 +2,7 @@ import { Injectable, Inject, BadRequestException, HttpException, HttpStatus } fr
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../../../infrastructure/redis/redis.service';
 import { OTP_PROVIDER, OtpProvider } from '../providers/otp.provider.interface';
+import { TemplateResolver, ActorType, OtpPurpose } from './template.resolver';
 
 @Injectable()
 export class OtpService {
@@ -13,6 +14,7 @@ export class OtpService {
   constructor(
     private readonly redisService: RedisService,
     private readonly config: ConfigService,
+    private readonly templateResolver: TemplateResolver,
     @Inject(OTP_PROVIDER) private readonly otpProvider: OtpProvider,
   ) {
     this.otpExpiresSec = this.config.get<number>('CUSTOMER_OTP_EXPIRES_SECONDS', 300);
@@ -28,7 +30,11 @@ export class OtpService {
   /**
    * Generates and sends an OTP, enforcing cooldown and deduplication.
    */
-  async requestOtp(phone: string): Promise<{ expiresIn: number; resendAvailableIn: number; devOtp?: string }> {
+  async requestOtp(
+    phone: string,
+    actor: ActorType = 'CUSTOMER',
+    purpose: OtpPurpose = 'LOGIN',
+  ): Promise<{ expiresIn: number; resendAvailableIn: number; devOtp?: string }> {
     const cooldownKey = this.getCooldownKey(phone);
     const inCooldown = await this.redisService.get(cooldownKey);
 
@@ -41,6 +47,9 @@ export class OtpService {
     // Future: generate random 6-digit number if not in dev mode.
     const otpValue = this.devOtp; // Fixed for now per requirements
 
+    // Resolve SMS template
+    const templateName = this.templateResolver.resolve(actor, purpose);
+
     // Reset attempts and save OTP
     const otpKey = this.getOtpKey(phone);
     const attemptsKey = this.getAttemptsKey(phone);
@@ -52,7 +61,7 @@ export class OtpService {
     await this.redisService.set(cooldownKey, '1', this.otpCooldownSec);
 
     // Call provider
-    await this.otpProvider.sendOtp(phone, otpValue);
+    await this.otpProvider.sendOtp(phone, otpValue, templateName);
 
     return {
       expiresIn: this.otpExpiresSec,
@@ -64,7 +73,7 @@ export class OtpService {
   /**
    * Verifies the OTP, enforcing attempt limits.
    */
-  async verifyOtp(phone: string, code: string): Promise<boolean> {
+  async verifyOtp(phone: string, code: string, actor?: string, purpose?: string): Promise<boolean> {
     const otpKey = this.getOtpKey(phone);
     const attemptsKey = this.getAttemptsKey(phone);
 

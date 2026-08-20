@@ -115,6 +115,12 @@ export class WasabiStorageProvider implements StorageProvider {
   }
 
   async getSignedUrl(key: string, expiresInSeconds = 3600): Promise<string> {
+    if (!key) return key;
+    if (key.startsWith('http://') || key.startsWith('https://')) {
+      if (!key.includes(this.bucket)) {
+        return key;
+      }
+    }
     await this.ensureBucketExists();
 
     let objectKey = key;

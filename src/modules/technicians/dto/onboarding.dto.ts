@@ -8,6 +8,10 @@ export class UpdateBasicInfoDto {
 
   @IsOptional()
   @IsString()
+  contact?: string;
+
+  @IsOptional()
+  @IsString()
   dateOfBirth?: string;
 
   @IsOptional()

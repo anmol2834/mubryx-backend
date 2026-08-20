@@ -96,6 +96,20 @@ export class CatalogService {
       where: { id },
       include: {
         Category: true,
+        reviews: {
+          include: {
+            customer: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 10,
+        },
       },
     });
 

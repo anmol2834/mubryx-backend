@@ -49,7 +49,7 @@ export const envValidationSchema = Joi.object({
     otherwise: Joi.optional(),
   }),
 
-  SMS_PROVIDER: Joi.string().valid('mock', 'msg91', 'twilio').default('mock'),
+  SMS_PROVIDER: Joi.string().valid('mock', 'msg91', 'twilio', 'shreesms', 'stpl', 'smartping', '2factor').default('mock'),
 
   FIREBASE_SERVICE_ACCOUNT_KEY: Joi.string().optional(),
   FIREBASE_SERVICE_ACCOUNT_PATH: Joi.string().optional(),

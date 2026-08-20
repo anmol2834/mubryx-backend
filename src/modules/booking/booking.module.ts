@@ -6,11 +6,15 @@ import { AssignmentService } from './assignment.service';
 
 import { NotificationsModule } from '@modules/notifications/notifications.module';
 import { WalletModule } from '../wallet/wallet.module';
+import { StorageModule } from '../../infrastructure/storage/storage.module';
+
+import { PdfInvoiceService } from './pdf-invoice.service';
+import { InvoiceService } from './invoice.service';
 
 @Module({
-  imports: [NotificationsModule, WalletModule],
+  imports: [NotificationsModule, WalletModule, StorageModule],
   controllers: [BookingController],
-  providers: [BookingService, DispatchService, AssignmentService],
-  exports: [BookingService, DispatchService, AssignmentService],
+  providers: [BookingService, DispatchService, AssignmentService, PdfInvoiceService, InvoiceService],
+  exports: [BookingService, DispatchService, AssignmentService, PdfInvoiceService, InvoiceService],
 })
 export class BookingModule {}

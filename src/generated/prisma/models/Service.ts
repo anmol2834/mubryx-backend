@@ -355,6 +355,7 @@ export type ServiceWhereInput = {
   Category?: Prisma.XOR<Prisma.CategoryScalarRelationFilter, Prisma.CategoryWhereInput>
   cartItems?: Prisma.CartItemListRelationFilter
   bookingItems?: Prisma.BookingItemListRelationFilter
+  reviews?: Prisma.ReviewListRelationFilter
 }
 
 export type ServiceOrderByWithRelationInput = {
@@ -382,6 +383,7 @@ export type ServiceOrderByWithRelationInput = {
   Category?: Prisma.CategoryOrderByWithRelationInput
   cartItems?: Prisma.CartItemOrderByRelationAggregateInput
   bookingItems?: Prisma.BookingItemOrderByRelationAggregateInput
+  reviews?: Prisma.ReviewOrderByRelationAggregateInput
 }
 
 export type ServiceWhereUniqueInput = Prisma.AtLeast<{
@@ -412,6 +414,7 @@ export type ServiceWhereUniqueInput = Prisma.AtLeast<{
   Category?: Prisma.XOR<Prisma.CategoryScalarRelationFilter, Prisma.CategoryWhereInput>
   cartItems?: Prisma.CartItemListRelationFilter
   bookingItems?: Prisma.BookingItemListRelationFilter
+  reviews?: Prisma.ReviewListRelationFilter
 }, "id">
 
 export type ServiceOrderByWithAggregationInput = {
@@ -494,6 +497,7 @@ export type ServiceCreateInput = {
   Category: Prisma.CategoryCreateNestedOneWithoutServiceInput
   cartItems?: Prisma.CartItemCreateNestedManyWithoutServiceInput
   bookingItems?: Prisma.BookingItemCreateNestedManyWithoutServiceInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceUncheckedCreateInput = {
@@ -520,6 +524,7 @@ export type ServiceUncheckedCreateInput = {
   tagColor?: string | null
   cartItems?: Prisma.CartItemUncheckedCreateNestedManyWithoutServiceInput
   bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutServiceInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceUpdateInput = {
@@ -546,6 +551,7 @@ export type ServiceUpdateInput = {
   Category?: Prisma.CategoryUpdateOneRequiredWithoutServiceNestedInput
   cartItems?: Prisma.CartItemUpdateManyWithoutServiceNestedInput
   bookingItems?: Prisma.BookingItemUpdateManyWithoutServiceNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceUncheckedUpdateInput = {
@@ -572,6 +578,7 @@ export type ServiceUncheckedUpdateInput = {
   tagColor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cartItems?: Prisma.CartItemUncheckedUpdateManyWithoutServiceNestedInput
   bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutServiceNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceCreateManyInput = {
@@ -752,6 +759,11 @@ export type ServiceScalarRelationFilter = {
   isNot?: Prisma.ServiceWhereInput
 }
 
+export type ServiceNullableScalarRelationFilter = {
+  is?: Prisma.ServiceWhereInput | null
+  isNot?: Prisma.ServiceWhereInput | null
+}
+
 export type ServiceCreateNestedManyWithoutCategoryInput = {
   create?: Prisma.XOR<Prisma.ServiceCreateWithoutCategoryInput, Prisma.ServiceUncheckedCreateWithoutCategoryInput> | Prisma.ServiceCreateWithoutCategoryInput[] | Prisma.ServiceUncheckedCreateWithoutCategoryInput[]
   connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutCategoryInput | Prisma.ServiceCreateOrConnectWithoutCategoryInput[]
@@ -839,6 +851,22 @@ export type ServiceUpdateOneRequiredWithoutBookingItemsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ServiceUpdateToOneWithWhereWithoutBookingItemsInput, Prisma.ServiceUpdateWithoutBookingItemsInput>, Prisma.ServiceUncheckedUpdateWithoutBookingItemsInput>
 }
 
+export type ServiceCreateNestedOneWithoutReviewsInput = {
+  create?: Prisma.XOR<Prisma.ServiceCreateWithoutReviewsInput, Prisma.ServiceUncheckedCreateWithoutReviewsInput>
+  connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutReviewsInput
+  connect?: Prisma.ServiceWhereUniqueInput
+}
+
+export type ServiceUpdateOneWithoutReviewsNestedInput = {
+  create?: Prisma.XOR<Prisma.ServiceCreateWithoutReviewsInput, Prisma.ServiceUncheckedCreateWithoutReviewsInput>
+  connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutReviewsInput
+  upsert?: Prisma.ServiceUpsertWithoutReviewsInput
+  disconnect?: Prisma.ServiceWhereInput | boolean
+  delete?: Prisma.ServiceWhereInput | boolean
+  connect?: Prisma.ServiceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ServiceUpdateToOneWithWhereWithoutReviewsInput, Prisma.ServiceUpdateWithoutReviewsInput>, Prisma.ServiceUncheckedUpdateWithoutReviewsInput>
+}
+
 export type ServiceCreateWithoutCategoryInput = {
   id?: string
   title: string
@@ -862,6 +890,7 @@ export type ServiceCreateWithoutCategoryInput = {
   tagColor?: string | null
   cartItems?: Prisma.CartItemCreateNestedManyWithoutServiceInput
   bookingItems?: Prisma.BookingItemCreateNestedManyWithoutServiceInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceUncheckedCreateWithoutCategoryInput = {
@@ -887,6 +916,7 @@ export type ServiceUncheckedCreateWithoutCategoryInput = {
   tagColor?: string | null
   cartItems?: Prisma.CartItemUncheckedCreateNestedManyWithoutServiceInput
   bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutServiceInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceCreateOrConnectWithoutCategoryInput = {
@@ -965,6 +995,7 @@ export type ServiceCreateWithoutCartItemsInput = {
   tagColor?: string | null
   Category: Prisma.CategoryCreateNestedOneWithoutServiceInput
   bookingItems?: Prisma.BookingItemCreateNestedManyWithoutServiceInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceUncheckedCreateWithoutCartItemsInput = {
@@ -990,6 +1021,7 @@ export type ServiceUncheckedCreateWithoutCartItemsInput = {
   tagBg?: string | null
   tagColor?: string | null
   bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutServiceInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceCreateOrConnectWithoutCartItemsInput = {
@@ -1031,6 +1063,7 @@ export type ServiceUpdateWithoutCartItemsInput = {
   tagColor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   Category?: Prisma.CategoryUpdateOneRequiredWithoutServiceNestedInput
   bookingItems?: Prisma.BookingItemUpdateManyWithoutServiceNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceUncheckedUpdateWithoutCartItemsInput = {
@@ -1056,6 +1089,7 @@ export type ServiceUncheckedUpdateWithoutCartItemsInput = {
   tagBg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tagColor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutServiceNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceCreateWithoutBookingItemsInput = {
@@ -1081,6 +1115,7 @@ export type ServiceCreateWithoutBookingItemsInput = {
   tagColor?: string | null
   Category: Prisma.CategoryCreateNestedOneWithoutServiceInput
   cartItems?: Prisma.CartItemCreateNestedManyWithoutServiceInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceUncheckedCreateWithoutBookingItemsInput = {
@@ -1106,6 +1141,7 @@ export type ServiceUncheckedCreateWithoutBookingItemsInput = {
   tagBg?: string | null
   tagColor?: string | null
   cartItems?: Prisma.CartItemUncheckedCreateNestedManyWithoutServiceInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceCreateOrConnectWithoutBookingItemsInput = {
@@ -1147,6 +1183,7 @@ export type ServiceUpdateWithoutBookingItemsInput = {
   tagColor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   Category?: Prisma.CategoryUpdateOneRequiredWithoutServiceNestedInput
   cartItems?: Prisma.CartItemUpdateManyWithoutServiceNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceUncheckedUpdateWithoutBookingItemsInput = {
@@ -1172,6 +1209,127 @@ export type ServiceUncheckedUpdateWithoutBookingItemsInput = {
   tagBg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tagColor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cartItems?: Prisma.CartItemUncheckedUpdateManyWithoutServiceNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutServiceNestedInput
+}
+
+export type ServiceCreateWithoutReviewsInput = {
+  id?: string
+  title: string
+  description: string
+  price: number
+  discountPrice?: number | null
+  rating?: number
+  reviewCount?: number
+  duration?: string
+  image?: string | null
+  features?: Prisma.ServiceCreatefeaturesInput | string[]
+  createdAt?: Date | string
+  updatedAt: Date | string
+  iconBg?: string | null
+  iconColor?: string | null
+  isActive?: boolean
+  isPopular?: boolean
+  svgType?: string | null
+  tag?: string | null
+  tagBg?: string | null
+  tagColor?: string | null
+  Category: Prisma.CategoryCreateNestedOneWithoutServiceInput
+  cartItems?: Prisma.CartItemCreateNestedManyWithoutServiceInput
+  bookingItems?: Prisma.BookingItemCreateNestedManyWithoutServiceInput
+}
+
+export type ServiceUncheckedCreateWithoutReviewsInput = {
+  id?: string
+  categoryId: string
+  title: string
+  description: string
+  price: number
+  discountPrice?: number | null
+  rating?: number
+  reviewCount?: number
+  duration?: string
+  image?: string | null
+  features?: Prisma.ServiceCreatefeaturesInput | string[]
+  createdAt?: Date | string
+  updatedAt: Date | string
+  iconBg?: string | null
+  iconColor?: string | null
+  isActive?: boolean
+  isPopular?: boolean
+  svgType?: string | null
+  tag?: string | null
+  tagBg?: string | null
+  tagColor?: string | null
+  cartItems?: Prisma.CartItemUncheckedCreateNestedManyWithoutServiceInput
+  bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutServiceInput
+}
+
+export type ServiceCreateOrConnectWithoutReviewsInput = {
+  where: Prisma.ServiceWhereUniqueInput
+  create: Prisma.XOR<Prisma.ServiceCreateWithoutReviewsInput, Prisma.ServiceUncheckedCreateWithoutReviewsInput>
+}
+
+export type ServiceUpsertWithoutReviewsInput = {
+  update: Prisma.XOR<Prisma.ServiceUpdateWithoutReviewsInput, Prisma.ServiceUncheckedUpdateWithoutReviewsInput>
+  create: Prisma.XOR<Prisma.ServiceCreateWithoutReviewsInput, Prisma.ServiceUncheckedCreateWithoutReviewsInput>
+  where?: Prisma.ServiceWhereInput
+}
+
+export type ServiceUpdateToOneWithWhereWithoutReviewsInput = {
+  where?: Prisma.ServiceWhereInput
+  data: Prisma.XOR<Prisma.ServiceUpdateWithoutReviewsInput, Prisma.ServiceUncheckedUpdateWithoutReviewsInput>
+}
+
+export type ServiceUpdateWithoutReviewsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.StringFieldUpdateOperationsInput | string
+  price?: Prisma.FloatFieldUpdateOperationsInput | number
+  discountPrice?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  rating?: Prisma.FloatFieldUpdateOperationsInput | number
+  reviewCount?: Prisma.IntFieldUpdateOperationsInput | number
+  duration?: Prisma.StringFieldUpdateOperationsInput | string
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  features?: Prisma.ServiceUpdatefeaturesInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  iconBg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  iconColor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isPopular?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  svgType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tagBg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tagColor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  Category?: Prisma.CategoryUpdateOneRequiredWithoutServiceNestedInput
+  cartItems?: Prisma.CartItemUpdateManyWithoutServiceNestedInput
+  bookingItems?: Prisma.BookingItemUpdateManyWithoutServiceNestedInput
+}
+
+export type ServiceUncheckedUpdateWithoutReviewsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.StringFieldUpdateOperationsInput | string
+  price?: Prisma.FloatFieldUpdateOperationsInput | number
+  discountPrice?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  rating?: Prisma.FloatFieldUpdateOperationsInput | number
+  reviewCount?: Prisma.IntFieldUpdateOperationsInput | number
+  duration?: Prisma.StringFieldUpdateOperationsInput | string
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  features?: Prisma.ServiceUpdatefeaturesInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  iconBg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  iconColor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isPopular?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  svgType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tagBg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tagColor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cartItems?: Prisma.CartItemUncheckedUpdateManyWithoutServiceNestedInput
+  bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceCreateManyCategoryInput = {
@@ -1220,6 +1378,7 @@ export type ServiceUpdateWithoutCategoryInput = {
   tagColor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cartItems?: Prisma.CartItemUpdateManyWithoutServiceNestedInput
   bookingItems?: Prisma.BookingItemUpdateManyWithoutServiceNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceUncheckedUpdateWithoutCategoryInput = {
@@ -1245,6 +1404,7 @@ export type ServiceUncheckedUpdateWithoutCategoryInput = {
   tagColor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cartItems?: Prisma.CartItemUncheckedUpdateManyWithoutServiceNestedInput
   bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutServiceNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceUncheckedUpdateManyWithoutCategoryInput = {
@@ -1278,11 +1438,13 @@ export type ServiceUncheckedUpdateManyWithoutCategoryInput = {
 export type ServiceCountOutputType = {
   cartItems: number
   bookingItems: number
+  reviews: number
 }
 
 export type ServiceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   cartItems?: boolean | ServiceCountOutputTypeCountCartItemsArgs
   bookingItems?: boolean | ServiceCountOutputTypeCountBookingItemsArgs
+  reviews?: boolean | ServiceCountOutputTypeCountReviewsArgs
 }
 
 /**
@@ -1307,6 +1469,13 @@ export type ServiceCountOutputTypeCountCartItemsArgs<ExtArgs extends runtime.Typ
  */
 export type ServiceCountOutputTypeCountBookingItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.BookingItemWhereInput
+}
+
+/**
+ * ServiceCountOutputType without action
+ */
+export type ServiceCountOutputTypeCountReviewsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ReviewWhereInput
 }
 
 
@@ -1335,6 +1504,7 @@ export type ServiceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   Category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
   cartItems?: boolean | Prisma.Service$cartItemsArgs<ExtArgs>
   bookingItems?: boolean | Prisma.Service$bookingItemsArgs<ExtArgs>
+  reviews?: boolean | Prisma.Service$reviewsArgs<ExtArgs>
   _count?: boolean | Prisma.ServiceCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["service"]>
 
@@ -1417,6 +1587,7 @@ export type ServiceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   Category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
   cartItems?: boolean | Prisma.Service$cartItemsArgs<ExtArgs>
   bookingItems?: boolean | Prisma.Service$bookingItemsArgs<ExtArgs>
+  reviews?: boolean | Prisma.Service$reviewsArgs<ExtArgs>
   _count?: boolean | Prisma.ServiceCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ServiceIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1432,6 +1603,7 @@ export type $ServicePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     Category: Prisma.$CategoryPayload<ExtArgs>
     cartItems: Prisma.$CartItemPayload<ExtArgs>[]
     bookingItems: Prisma.$BookingItemPayload<ExtArgs>[]
+    reviews: Prisma.$ReviewPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1852,6 +2024,7 @@ export interface Prisma__ServiceClient<T, Null = never, ExtArgs extends runtime.
   Category<T extends Prisma.CategoryDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CategoryDefaultArgs<ExtArgs>>): Prisma.Prisma__CategoryClient<runtime.Types.Result.GetResult<Prisma.$CategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   cartItems<T extends Prisma.Service$cartItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$cartItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CartItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   bookingItems<T extends Prisma.Service$bookingItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$bookingItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BookingItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  reviews<T extends Prisma.Service$reviewsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReviewPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2348,6 +2521,30 @@ export type Service$bookingItemsArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.BookingItemScalarFieldEnum | Prisma.BookingItemScalarFieldEnum[]
+}
+
+/**
+ * Service.reviews
+ */
+export type Service$reviewsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Review
+   */
+  select?: Prisma.ReviewSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Review
+   */
+  omit?: Prisma.ReviewOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ReviewInclude<ExtArgs> | null
+  where?: Prisma.ReviewWhereInput
+  orderBy?: Prisma.ReviewOrderByWithRelationInput | Prisma.ReviewOrderByWithRelationInput[]
+  cursor?: Prisma.ReviewWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ReviewScalarFieldEnum | Prisma.ReviewScalarFieldEnum[]
 }
 
 /**

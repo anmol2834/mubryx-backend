@@ -128,6 +128,7 @@ export class TechniciansService {
         data: {
           userId: user.id,
           fullName: user.name,
+          contact: user.phone,
           onboardingStatus: 'DRAFT',
           wallet: {
             create: {
@@ -389,7 +390,7 @@ export class TechniciansService {
       },
       _sum: { amount: true },
     });
-    const totalEarnings = earningsResult._sum.amount ?? 0;
+    const totalEarnings = Math.round((earningsResult._sum.amount ?? 0) * 100) / 100;
 
     // ── Today's Earnings (Daily, from completed bookings today) ──────────────────
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -401,7 +402,7 @@ export class TechniciansService {
       },
       _sum: { amount: true },
     });
-    const todayEarnings = todayEarningsResult._sum.amount ?? 0;
+    const todayEarnings = Math.round((todayEarningsResult._sum.amount ?? 0) * 100) / 100;
 
     // ── Acceptance Rate (Last 30 days) ────────────────────────────────────────
     // Denominator: dispatches with terminal outcomes that the technician was
@@ -500,7 +501,10 @@ export class TechniciansService {
   }
 
   async updateBasicInfo(userId: string, dto: UpdateBasicInfoDto) {
-    const profile = await this.prisma.technicianProfile.findUnique({ where: { userId } });
+    const profile = await this.prisma.technicianProfile.findUnique({
+      where: { userId },
+      include: { user: true },
+    });
     if (!profile) throw new BadRequestException('Technician profile not found');
 
     if (dto.fullName) {
@@ -510,9 +514,14 @@ export class TechniciansService {
       });
     }
 
+    const contactToSave = dto.contact || profile.contact || profile.user?.phone || null;
+
     return this.prisma.technicianProfile.update({
       where: { userId },
-      data: dto,
+      data: {
+        ...dto,
+        contact: contactToSave,
+      },
       include: {
         documents: true,
         experiences: true,
@@ -1066,18 +1075,18 @@ export class TechniciansService {
 
     return {
       summary: {
-        today,
+        today: Math.round(today * 100) / 100,
         todayChange: 0,
-        thisWeek,
+        thisWeek: Math.round(thisWeek * 100) / 100,
         weekChange: 0,
-        thisMonth,
+        thisMonth: Math.round(thisMonth * 100) / 100,
         monthLabel: monthStart.toLocaleString('default', { month: 'long' }),
-        lifetime,
+        lifetime: Math.round(lifetime * 100) / 100,
         totalJobs: totalJobsResult
       },
       transactions: mappedTransactions,
       payoutInfo: {
-        availableBalance: wallet?.availableBalance || 0,
+        availableBalance: Math.round((wallet?.availableBalance || 0) * 100) / 100,
         bank: profile.bankDetails ? {
           bankName: profile.bankDetails.bankName,
           maskedAccount: '•••• ' + profile.bankDetails.accountNumber.slice(-4),

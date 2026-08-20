@@ -43,13 +43,14 @@ export class WalletService {
         });
       }
 
-      const balanceBefore = wallet.availableBalance;
-      const balanceAfter = balanceBefore + amount;
+      const cleanAmount = Math.round(amount * 100) / 100;
+      const balanceBefore = Math.round(wallet.availableBalance * 100) / 100;
+      const balanceAfter = Math.round((balanceBefore + cleanAmount) * 100) / 100;
 
       const updatedWallet = await tx.technicianWallet.update({
         where: { id: wallet.id },
         data: {
-          availableBalance: { increment: amount },
+          availableBalance: balanceAfter,
         },
       });
 
@@ -57,7 +58,7 @@ export class WalletService {
         data: {
           walletId: wallet.id,
           type: 'RECHARGE',
-          amount,
+          amount: cleanAmount,
           balanceBefore,
           balanceAfter,
           referenceId,
@@ -118,13 +119,14 @@ export class WalletService {
 
       if (!wallet) throw new BadRequestException('Wallet not found');
       
-      const balanceBefore = wallet.availableBalance; 
-      const balanceAfter = balanceBefore - amount;
+      const cleanAmount = Math.round(amount * 100) / 100;
+      const balanceBefore = Math.round(wallet.availableBalance * 100) / 100; 
+      const balanceAfter = Math.round((balanceBefore - cleanAmount) * 100) / 100;
 
       const updatedWallet = await tx.technicianWallet.update({
         where: { id: wallet.id },
         data: {
-          availableBalance: { decrement: amount },
+          availableBalance: balanceAfter,
         },
       });
 
@@ -132,7 +134,7 @@ export class WalletService {
         data: {
           walletId: wallet.id,
           type: 'CASH_COLLECTION_SETTLEMENT',
-          amount: -amount,
+          amount: -cleanAmount,
           balanceBefore,
           balanceAfter,
           referenceId: bookingId,
@@ -163,13 +165,14 @@ export class WalletService {
 
       if (!wallet) throw new BadRequestException('Wallet not found');
 
-      const balanceBefore = wallet.availableBalance;
-      const balanceAfter = balanceBefore + amount;
+      const cleanAmount = Math.round(amount * 100) / 100;
+      const balanceBefore = Math.round(wallet.availableBalance * 100) / 100;
+      const balanceAfter = Math.round((balanceBefore + cleanAmount) * 100) / 100;
 
       const updatedWallet = await tx.technicianWallet.update({
         where: { id: wallet.id },
         data: {
-          availableBalance: { increment: amount },
+          availableBalance: balanceAfter,
         },
       });
 
@@ -177,7 +180,7 @@ export class WalletService {
         data: {
           walletId: wallet.id,
           type: 'JOB_EARNING',
-          amount,
+          amount: cleanAmount,
           balanceBefore,
           balanceAfter,
           referenceId: bookingId,

@@ -74,7 +74,8 @@ export const ModelName = {
   TechnicianWallet: 'TechnicianWallet',
   WalletTransaction: 'WalletTransaction',
   AdminWallet: 'AdminWallet',
-  AdminWalletTransaction: 'AdminWalletTransaction'
+  AdminWalletTransaction: 'AdminWalletTransaction',
+  Review: 'Review'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -149,6 +150,7 @@ export const TechnicianProfileScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   fullName: 'fullName',
+  contact: 'contact',
   dateOfBirth: 'dateOfBirth',
   gender: 'gender',
   currentCity: 'currentCity',
@@ -349,6 +351,9 @@ export const BookingScalarFieldEnum = {
   couponCode: 'couponCode',
   otp: 'otp',
   happyCode: 'happyCode',
+  invoiceNumber: 'invoiceNumber',
+  invoiceUrl: 'invoiceUrl',
+  invoiceGeneratedAt: 'invoiceGeneratedAt',
   customerNotes: 'customerNotes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -511,6 +516,22 @@ export const AdminWalletTransactionScalarFieldEnum = {
 } as const
 
 export type AdminWalletTransactionScalarFieldEnum = (typeof AdminWalletTransactionScalarFieldEnum)[keyof typeof AdminWalletTransactionScalarFieldEnum]
+
+
+export const ReviewScalarFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  customerId: 'customerId',
+  technicianId: 'technicianId',
+  serviceId: 'serviceId',
+  rating: 'rating',
+  comment: 'comment',
+  suggestion: 'suggestion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ReviewScalarFieldEnum = (typeof ReviewScalarFieldEnum)[keyof typeof ReviewScalarFieldEnum]
 
 
 export const SortOrder = {

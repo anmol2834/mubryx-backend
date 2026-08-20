@@ -56,6 +56,17 @@ export class SocketRoomManagerService {
       roomsToJoin.push(this.getCustomerRoom(user.userId));
     } else if (user.role === UserRole.TECHNICIAN) {
       roomsToJoin.push(this.getTechnicianRoom(user.userId));
+      try {
+        const profile = await this.prisma.technicianProfile.findUnique({
+          where: { userId: user.userId },
+          select: { id: true },
+        });
+        if (profile?.id) {
+          roomsToJoin.push(this.getTechnicianRoom(profile.id));
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to fetch technicianProfile.id for room joining: ${err}`);
+      }
     } else if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
       roomsToJoin.push(this.getAdminRoom(user.userId));
     }

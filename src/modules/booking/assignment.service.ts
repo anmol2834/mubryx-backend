@@ -1,9 +1,10 @@
-import { Injectable, Logger, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, ConflictException, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RealtimeService } from '../../realtime/services/realtime.service';
 import { REALTIME_EVENTS } from '../../realtime/constants/realtime-events.constant';
 import { NotificationsService } from '../notifications/notifications.service';
 import { WalletService } from '../wallet/wallet.service';
+import { STORAGE_PROVIDER, StorageProvider } from '../../infrastructure/storage/storage.provider';
 
 @Injectable()
 export class AssignmentService {
@@ -14,6 +15,7 @@ export class AssignmentService {
     private readonly realtimeService: RealtimeService,
     private readonly notificationsService: NotificationsService,
     private readonly walletService: WalletService,
+    @Inject(STORAGE_PROVIDER) private readonly storageProvider: StorageProvider,
   ) {}
 
   async acceptBooking(userId: string, targetId: string, bookingItemIdParam?: string) {
@@ -219,6 +221,15 @@ export class AssignmentService {
       }
     }
 
+    let signedPhoto = technician.profilePhoto || null;
+    if (signedPhoto) {
+      try {
+        signedPhoto = await this.storageProvider.getSignedUrl(signedPhoto);
+      } catch {
+        // keep original if signing fails
+      }
+    }
+
     // Emit to customer
     this.realtimeService.emitBookingEvent(bookingId, 'booking:assigned', {
       bookingId,
@@ -227,14 +238,24 @@ export class AssignmentService {
       customerId: updatedBooking!.customerId,
       status: updatedBooking!.status,
       technicianId: technician.id,
+      estimatedArrival: '~15 min',
       updatedAt: updatedBooking!.updatedAt.toISOString(),
       engineer: {
-        name: technician.user.name || 'Technician',
-        photo: technician.profilePhoto || null,
-        rating: '4.9',
-        completedJobs: 42,
+        id: technician.id,
+        name: technician.fullName || technician.user?.name || 'Technician',
+        photo: signedPhoto,
+        profilePhoto: signedPhoto,
+        phone: (technician as any).contact || technician.user?.phone || (technician as any).phone || null,
+        rating: technician.rating ? String(technician.rating) : '4.9',
+        completedJobs: technician.totalRatings || 42,
         distance: '2.5 km',
         isTopRated: true,
+      },
+      technician: {
+        id: technician.id,
+        fullName: technician.fullName || technician.user?.name || 'Technician',
+        phone: (technician as any).contact || technician.user?.phone || (technician as any).phone || null,
+        profilePhoto: signedPhoto,
       },
     });
 

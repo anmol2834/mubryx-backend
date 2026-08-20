@@ -154,8 +154,8 @@ export class DispatchService {
           },
         });
 
-        const itemTax = Math.round(item.lineTotal * 0.18);
-        const itemTotalWithTax = item.lineTotal + itemTax;
+        const itemTax = Math.round(item.lineTotal * 0.18 * 100) / 100;
+        const itemTotalWithTax = Math.round((item.lineTotal + itemTax) * 100) / 100;
 
         const payload = {
           type: 'booking:incoming',

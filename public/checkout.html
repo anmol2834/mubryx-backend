@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Razorpay Checkout Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #528FF0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #3f7de0;
+        }
+        #message {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Complete your Payment</h2>
+        <p>Amount: ₹500.00</p>
+        <button id="pay-btn">Pay Now</button>
+        <div id="message"></div>
+    </div>
+
+    <!-- Razorpay Checkout Script -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        // Use environment variable or inject this dynamically in real app
+        // Note: KEY_ID is safe to be public
+        const RAZORPAY_KEY_ID = "rzp_test_TQQTJsz6Ojadnd"; 
+
+        document.getElementById('pay-btn').onclick = async function (e) {
+            e.preventDefault();
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = 'Processing...';
+            messageEl.className = '';
+
+            try {
+                // 1. Create order on backend
+                const orderResponse = await fetch('/api/v1/payments/create-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        amount: 50000, 
+                        currency: 'INR',
+                        notes: {
+                            type: 'WALLET_RECHARGE',
+                            targetId: 'cm0r1v21m000108jz3n3r4n5g' // Dummy technician ID, replace with real ID
+                        }
+                    })
+                });
+
+                const orderData = await orderResponse.json();
+
+                if (!orderData.success) {
+                    throw new Error(orderData.message || 'Failed to create order');
+                }
+
+                // 2. Initialize Razorpay Checkout
+                const options = {
+                    key: RAZORPAY_KEY_ID,
+                    amount: orderData.amount,
+                    currency: orderData.currency,
+                    name: "Mubryx Services",
+                    description: "Payment for services",
+                    order_id: orderData.order_id,
+                    handler: async function (response) {
+                        try {
+                            // 3. Verify payment signature on backend
+                            messageEl.textContent = 'Verifying payment...';
+                            const verifyResponse = await fetch('/api/v1/payments/verify-payment', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature
+                                })
+                            });
+
+                            const verifyData = await verifyResponse.json();
+
+                            if (verifyData.success) {
+                                messageEl.textContent = 'Payment Verified Successfully!';
+                                messageEl.className = 'success';
+                            } else {
+                                throw new Error('Payment verification failed');
+                            }
+                        } catch (err) {
+                            messageEl.textContent = err.message;
+                            messageEl.className = 'error';
+                        }
+                    },
+                    prefill: {
+                        name: "Test User",
+                        email: "test@example.com",
+                        contact: "9999999999"
+                    },
+                    theme: {
+                        color: "#528FF0"
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                
+                rzp.on('payment.failed', function (response){
+                    messageEl.textContent = 'Payment Failed: ' + response.error.description;
+                    messageEl.className = 'error';
+                });
+
+                rzp.open();
+            } catch (err) {
+                messageEl.textContent = err.message;
+                messageEl.className = 'error';
+            }
+        };
+    </script>
+</body>
+</html>

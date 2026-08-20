@@ -21,6 +21,10 @@ export const REALTIME_EVENTS = {
     CANCELLED: 'booking:cancelled',
     FAILED: 'booking:failed',
     STATUS_CHANGED: 'booking:status_changed',
+    REVIEW_REQUESTED: 'booking:review_requested',
+    REVIEW_SUBMITTED: 'booking:review_submitted',
+    HAPPY_CODE_GENERATED: 'booking:happy_code_generated',
+    INVOICE_READY: 'booking:invoice_ready',
   },
 
   // Technician presence & location tracking

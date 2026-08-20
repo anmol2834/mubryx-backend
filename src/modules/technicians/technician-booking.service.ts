@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Inject,
   NotFoundException,
   ForbiddenException,
   BadRequestException,
@@ -12,7 +13,10 @@ import { REALTIME_EVENTS } from '../../realtime/constants/realtime-events.consta
 import { BookingStatus, BookingSparePart } from '../../generated/prisma/client';
 import { WalletService } from '../wallet/wallet.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { STORAGE_PROVIDER, StorageProvider } from '../../infrastructure/storage/storage.provider';
 import * as crypto from 'crypto';
+
+import { InvoiceService } from '../booking/invoice.service';
 
 @Injectable()
 export class TechnicianBookingService {
@@ -23,6 +27,8 @@ export class TechnicianBookingService {
     private readonly realtimeService: RealtimeService,
     private readonly walletService: WalletService,
     private readonly notificationsService: NotificationsService,
+    private readonly invoiceService: InvoiceService,
+    @Inject(STORAGE_PROVIDER) private readonly storageProvider: StorageProvider,
   ) {}
 
   private async getTechnicianProfile(userId: string) {
@@ -132,11 +138,16 @@ export class TechnicianBookingService {
     }
 
     if (nextStatus === 'SERVICE_COMPLETED' || nextStatus === 'COMPLETED') {
+      if (!booking.happyCode) {
+        throw new BadRequestException(
+          'Customer has not submitted a review yet. The Happy Code will be generated after customer submits their review.',
+        );
+      }
       if (!otp) {
         throw new BadRequestException('Happy Code is required to complete service');
       }
-      if (!booking.happyCode || otp !== booking.happyCode) {
-        throw new BadRequestException('Invalid Happy Code. Please ask the customer for the 4-digit code.');
+      if (otp !== booking.happyCode) {
+        throw new BadRequestException('Invalid Happy Code. Please ask the customer for the 4-digit code shown on their review modal.');
       }
     }
 
@@ -173,8 +184,8 @@ export class TechnicianBookingService {
         const sparePartsTotal = fullBooking?.spareParts.reduce((sum, part) => sum + (part.unitPrice * part.quantity), 0) || 0;
         const commissionableAmount = b.subtotal + sparePartsTotal;
         
-        const companyCommission = commissionableAmount * 0.20;
-        const technicianEarnings = commissionableAmount - companyCommission;
+        const companyCommission = Math.round(commissionableAmount * 0.20 * 100) / 100;
+        const technicianEarnings = Math.round((commissionableAmount - companyCommission) * 100) / 100;
 
         // Add technician earnings directly to available balance
         await this.walletService.addEarning(technician.id, technicianEarnings, bookingId, tx);
@@ -197,7 +208,34 @@ export class TechnicianBookingService {
       return b;
     });
 
+    // Auto-generate legal PDF invoice and upload to Wasabi S3 on service completion
+    let invoiceData: { invoiceNumber?: string; invoiceUrl?: string } = {};
+    if (nextStatus === 'SERVICE_COMPLETED' || nextStatus === 'COMPLETED') {
+      try {
+        invoiceData = await this.invoiceService.generateAndUploadInvoice(bookingId);
+      } catch (invoiceErr: any) {
+        this.logger.error(`Failed to generate PDF invoice for booking ${bookingId}:`, invoiceErr);
+      }
+    }
+
     const techName = technician.user?.name || 'Your technician';
+    let signedPhoto = technician.profilePhoto || null;
+    if (signedPhoto) {
+      try {
+        signedPhoto = await this.storageProvider.getSignedUrl(signedPhoto);
+      } catch {
+        // keep original
+      }
+    }
+
+    let signedInvoiceUrl = invoiceData.invoiceUrl || (updatedBooking as any)?.invoiceUrl || null;
+    if (signedInvoiceUrl) {
+      try {
+        signedInvoiceUrl = await this.storageProvider.getSignedUrl(signedInvoiceUrl, 604800);
+      } catch {
+        // keep original
+      }
+    }
 
     this.realtimeService.emitBookingEvent(bookingId, REALTIME_EVENTS.BOOKING.STATUS_CHANGED, {
       bookingId,
@@ -207,11 +245,25 @@ export class TechnicianBookingService {
       status: nextStatus,
       previousStatus: booking.status,
       happyCode: updatedBooking!.happyCode, // Pass happy code to customer track service
+      invoiceNumber: invoiceData.invoiceNumber || (updatedBooking as any)?.invoiceNumber || null,
+      invoiceUrl: signedInvoiceUrl,
+      estimatedArrival: '~15 min',
+      engineer: {
+        id: technician.id,
+        name: techName,
+        photo: signedPhoto,
+        profilePhoto: signedPhoto,
+        phone: (technician as any).contact || technician.user?.phone || (technician as any).phone || null,
+        rating: technician.rating ? String(technician.rating) : '4.9',
+        completedJobs: technician.totalRatings || 42,
+        distance: '2.5 km',
+        isTopRated: true,
+      },
       technician: {
         id: technician.id,
         fullName: techName,
-        phone: technician.user?.phone || null,
-        profilePhoto: technician.profilePhoto || null,
+        phone: (technician as any).contact || technician.user?.phone || (technician as any).phone || null,
+        profilePhoto: signedPhoto,
       },
       updatedAt: new Date().toISOString(),
     });
@@ -268,7 +320,119 @@ export class TechnicianBookingService {
       });
     }
 
-    return updatedBooking;
+    return this.getTechnicianBookingById(userId, bookingId);
+  }
+
+  /**
+   * Request review from customer when technician clicks 'End Service'.
+   * Emits real-time socket event 'booking:review_requested' to customer.
+   */
+  async requestReview(userId: string, bookingId: string) {
+    const technician = await this.getTechnicianProfile(userId);
+
+    let booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        review: true,
+        items: true,
+      },
+    });
+
+    if (!booking || booking.technicianId !== technician.id) {
+      throw new ForbiddenException('You do not have access to this booking');
+    }
+
+    if (booking.status !== 'SERVICE_STARTED') {
+      throw new BadRequestException('Cannot request review unless service is in progress (SERVICE_STARTED)');
+    }
+
+    // Atomic Happy Code generation if not already generated
+    if (!booking.happyCode) {
+      const generatedCode = crypto.randomInt(1000, 10000).toString();
+      booking = await this.prisma.booking.update({
+        where: { id: bookingId },
+        data: { happyCode: generatedCode },
+        include: {
+          review: true,
+          items: true,
+        },
+      });
+    }
+
+    if (booking.review && booking.happyCode) {
+      return {
+        reviewRequested: false,
+        reviewAlreadySubmitted: true,
+        happyCode: booking.happyCode,
+        message: 'Customer has already submitted a review for this booking.',
+      };
+    }
+
+    const techName = technician.fullName || technician.user?.name || 'Your technician';
+    let signedPhoto = technician.profilePhoto || null;
+    if (signedPhoto) {
+      try {
+        signedPhoto = await this.storageProvider.getSignedUrl(signedPhoto);
+      } catch {
+        // keep original
+      }
+    }
+
+    const realTimePayload = {
+      bookingId,
+      bookingNumber: booking.bookingNumber,
+      customerId: booking.customerId,
+      technicianId: technician.id,
+      status: booking.status,
+      reviewRequested: true,
+      serviceTitle: booking.items[0]?.serviceTitleSnapshot || 'Service',
+      technician: {
+        id: technician.id,
+        fullName: techName,
+        profilePhoto: signedPhoto,
+        phone: (technician as any).contact || technician.user?.phone || null,
+      },
+      engineer: {
+        id: technician.id,
+        name: techName,
+        photo: signedPhoto,
+        profilePhoto: signedPhoto,
+        phone: (technician as any).contact || technician.user?.phone || null,
+        rating: technician.rating ? String(technician.rating) : '4.9',
+        completedJobs: technician.totalRatings || 42,
+        distance: '2.5 km',
+        isTopRated: true,
+      },
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Emit real-time event to customer so bottom sheet modal opens automatically
+    this.realtimeService.emitBookingEvent(bookingId, REALTIME_EVENTS.BOOKING.REVIEW_REQUESTED, realTimePayload);
+
+    // Asynchronous non-blocking push notification to customer
+    if (booking.customerId) {
+      this.notificationsService
+        .sendBookingUpdate(
+          booking.customerId,
+          'Rate Your Experience ⭐️',
+          `${techName} has finished the service! Please rate your experience to get your Happy Code.`,
+          {
+            type: 'REVIEW_REQUESTED',
+            bookingId,
+            technicianId: technician.id,
+            technicianName: techName,
+          },
+        )
+        .catch((err) => {
+          this.logger.warn(`Failed to dispatch customer review request push notification: ${err?.message}`);
+        });
+    }
+
+    return {
+      success: true,
+      reviewRequested: true,
+      message: 'Review request sent to customer in real-time. Waiting for customer review...',
+    };
   }
 
   async generateHappyCode(userId: string, bookingId: string) {
@@ -276,6 +440,7 @@ export class TechnicianBookingService {
 
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
+      include: { review: true },
     });
 
     if (!booking || booking.technicianId !== technician.id) {
@@ -290,21 +455,17 @@ export class TechnicianBookingService {
       return { happyCode: booking.happyCode }; // Return existing if already generated
     }
 
+    if (!booking.review) {
+      throw new BadRequestException(
+        'Customer has not submitted a review yet. Happy Code is generated automatically once customer submits a review.',
+      );
+    }
+
     const happyCode = crypto.randomInt(1000, 10000).toString();
 
     await this.prisma.booking.update({
       where: { id: bookingId },
       data: { happyCode },
-    });
-
-    // Emit real-time event to customer so they can see the happy code
-    this.realtimeService.emitBookingEvent(bookingId, REALTIME_EVENTS.BOOKING.STATUS_CHANGED, {
-      bookingId,
-      bookingNumber: booking.bookingNumber,
-      customerId: booking.customerId,
-      status: booking.status,
-      happyCode,
-      updatedAt: new Date().toISOString(),
     });
 
     return { happyCode };
@@ -369,10 +530,10 @@ export class TechnicianBookingService {
     });
     if (!booking) return;
 
-    const subtotal = booking.items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
-    const sparePartsTotal = booking.spareParts.reduce((sum, part) => sum + (part.unitPrice * part.quantity), 0);
-    const tax = Math.round((subtotal + sparePartsTotal) * 0.18);
-    const totalAmount = subtotal + sparePartsTotal + tax - booking.discount;
+    const subtotal = Math.round(booking.items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0) * 100) / 100;
+    const sparePartsTotal = Math.round(booking.spareParts.reduce((sum, part) => sum + (part.unitPrice * part.quantity), 0) * 100) / 100;
+    const tax = Math.round((subtotal + sparePartsTotal) * 0.18 * 100) / 100;
+    const totalAmount = Math.round((subtotal + sparePartsTotal + tax - booking.discount) * 100) / 100;
 
     await this.prisma.booking.update({
       where: { id: bookingId },

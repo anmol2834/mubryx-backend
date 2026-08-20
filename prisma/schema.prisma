@@ -52,6 +52,7 @@ model User {
   bookings          Booking[]
   notifications     Notification[]
   pushTokens        DevicePushToken[]
+  reviews           Review[]
 
   @@index([phone])
   @@index([role])
@@ -124,6 +125,7 @@ model TechnicianProfile {
   id               String                 @id @default(cuid())
   userId           String                 @unique
   fullName         String?
+  contact          String?
   dateOfBirth      String?
   gender           Gender?
   currentCity      String?
@@ -150,6 +152,7 @@ model TechnicianProfile {
   dispatches       BookingDispatch[]
   bookings         Booking[]
   bookingItems     BookingItem[]
+  reviews          Review[]
 
   user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   bankDetails      TechnicianBankDetails?
@@ -258,6 +261,7 @@ model Service {
   Category      Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   cartItems     CartItem[]
   bookingItems  BookingItem[]
+  reviews       Review[]
 }
 
 enum CartStatus {
@@ -432,6 +436,11 @@ model Booking {
   otp         String?
   happyCode   String?
 
+  // Invoice
+  invoiceNumber      String?   @unique
+  invoiceUrl         String?
+  invoiceGeneratedAt DateTime?
+
   // Notes
   customerNotes String?
 
@@ -445,6 +454,7 @@ model Booking {
   statusHistory BookingStatusHistory[]
   dispatches    BookingDispatch[]
   spareParts    BookingSparePart[]
+  review        Review?
 
   @@index([customerId])
   @@index([status])
@@ -664,3 +674,27 @@ model AdminWalletTransaction {
   @@index([walletId, createdAt])
   @@map("admin_wallet_transactions")
 }
+
+model Review {
+  id           String            @id @default(cuid())
+  bookingId    String            @unique
+  customerId   String
+  technicianId String
+  serviceId    String?
+  rating       Int
+  comment      String
+  suggestion   String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  booking      Booking           @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  customer     User              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  technician   TechnicianProfile @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  service      Service?          @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([customerId])
+  @@index([technicianId])
+  @@index([serviceId])
+  @@map("reviews")
+}
+

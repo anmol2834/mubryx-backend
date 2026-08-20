@@ -8,8 +8,10 @@ import { StorageModule } from '../../infrastructure/storage/storage.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
+import { BookingModule } from '../booking/booking.module';
+
 @Module({
-  imports: [AuthModule, StorageModule, WalletModule, NotificationsModule],
+  imports: [AuthModule, StorageModule, WalletModule, NotificationsModule, BookingModule],
   controllers: [TechniciansController, TechnicianBookingController],
   providers: [TechniciansService, TechnicianBookingService],
   exports: [TechniciansService],

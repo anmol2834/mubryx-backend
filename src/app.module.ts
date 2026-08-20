@@ -16,11 +16,13 @@ import { CartModule } from './modules/cart/cart.module';
 import { TechniciansModule } from './modules/technicians/technicians.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
 import { BookingModule } from './modules/booking/booking.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 
 import { RealtimeModule } from './realtime/realtime.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { FirebaseModule } from './infrastructure/firebase/firebase.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 
 import configuration from './config/configuration';
 
@@ -52,9 +54,11 @@ import configuration from './config/configuration';
     TechniciansModule,
     AddressesModule,
     BookingModule,
+    ReviewsModule,
     NotificationsModule,
     WalletModule,
     FirebaseModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

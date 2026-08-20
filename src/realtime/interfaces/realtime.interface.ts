@@ -37,14 +37,27 @@ export interface BookingEventPayload {
     profilePhoto?: string | null;
   } | null;
   engineer?: {
+    id?: string | null;
     name: string;
     photo: string | null;
+    profilePhoto?: string | null;
+    phone?: string | null;
     rating: string;
     completedJobs: number;
     distance: string;
     isTopRated: boolean;
   } | null;
   happyCode?: string | null;
+  invoiceNumber?: string | null;
+  invoiceUrl?: string | null;
+  reviewRequested?: boolean;
+  review?: {
+    id: string;
+    rating: number;
+    comment: string;
+    suggestion?: string | null;
+  } | null;
+  estimatedArrival?: string | null;
   updatedAt: string;
 }
 

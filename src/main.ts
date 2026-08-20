@@ -3,6 +3,8 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { ValidationPipe } from '@nestjs/common';
 import helmet from '@fastify/helmet';
 import fastifyMultipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
+import { join } from 'path';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
@@ -23,6 +25,13 @@ async function bootstrap() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await app.register(helmet as any);
+
+  // Register static file serving for public folder
+  await app.register(fastifyStatic as any, {
+    root: join(__dirname, '..', 'public'),
+    prefix: '/public/', // Serves as /public/checkout.html
+  });
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await app.register(fastifyMultipart as any, {
     limits: {

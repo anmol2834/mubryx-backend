@@ -46,6 +46,7 @@ export type TechnicianProfileMinAggregateOutputType = {
   id: string | null
   userId: string | null
   fullName: string | null
+  contact: string | null
   dateOfBirth: string | null
   gender: $Enums.Gender | null
   currentCity: string | null
@@ -70,6 +71,7 @@ export type TechnicianProfileMaxAggregateOutputType = {
   id: string | null
   userId: string | null
   fullName: string | null
+  contact: string | null
   dateOfBirth: string | null
   gender: $Enums.Gender | null
   currentCity: string | null
@@ -94,6 +96,7 @@ export type TechnicianProfileCountAggregateOutputType = {
   id: number
   userId: number
   fullName: number
+  contact: number
   dateOfBirth: number
   gender: number
   currentCity: number
@@ -136,6 +139,7 @@ export type TechnicianProfileMinAggregateInputType = {
   id?: true
   userId?: true
   fullName?: true
+  contact?: true
   dateOfBirth?: true
   gender?: true
   currentCity?: true
@@ -160,6 +164,7 @@ export type TechnicianProfileMaxAggregateInputType = {
   id?: true
   userId?: true
   fullName?: true
+  contact?: true
   dateOfBirth?: true
   gender?: true
   currentCity?: true
@@ -184,6 +189,7 @@ export type TechnicianProfileCountAggregateInputType = {
   id?: true
   userId?: true
   fullName?: true
+  contact?: true
   dateOfBirth?: true
   gender?: true
   currentCity?: true
@@ -295,6 +301,7 @@ export type TechnicianProfileGroupByOutputType = {
   id: string
   userId: string
   fullName: string | null
+  contact: string | null
   dateOfBirth: string | null
   gender: $Enums.Gender | null
   currentCity: string | null
@@ -342,6 +349,7 @@ export type TechnicianProfileWhereInput = {
   id?: Prisma.StringFilter<"TechnicianProfile"> | string
   userId?: Prisma.StringFilter<"TechnicianProfile"> | string
   fullName?: Prisma.StringNullableFilter<"TechnicianProfile"> | string | null
+  contact?: Prisma.StringNullableFilter<"TechnicianProfile"> | string | null
   dateOfBirth?: Prisma.StringNullableFilter<"TechnicianProfile"> | string | null
   gender?: Prisma.EnumGenderNullableFilter<"TechnicianProfile"> | $Enums.Gender | null
   currentCity?: Prisma.StringNullableFilter<"TechnicianProfile"> | string | null
@@ -366,6 +374,7 @@ export type TechnicianProfileWhereInput = {
   dispatches?: Prisma.BookingDispatchListRelationFilter
   bookings?: Prisma.BookingListRelationFilter
   bookingItems?: Prisma.BookingItemListRelationFilter
+  reviews?: Prisma.ReviewListRelationFilter
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   bankDetails?: Prisma.XOR<Prisma.TechnicianBankDetailsNullableScalarRelationFilter, Prisma.TechnicianBankDetailsWhereInput> | null
   wallet?: Prisma.XOR<Prisma.TechnicianWalletNullableScalarRelationFilter, Prisma.TechnicianWalletWhereInput> | null
@@ -375,6 +384,7 @@ export type TechnicianProfileOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   fullName?: Prisma.SortOrderInput | Prisma.SortOrder
+  contact?: Prisma.SortOrderInput | Prisma.SortOrder
   dateOfBirth?: Prisma.SortOrderInput | Prisma.SortOrder
   gender?: Prisma.SortOrderInput | Prisma.SortOrder
   currentCity?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -399,6 +409,7 @@ export type TechnicianProfileOrderByWithRelationInput = {
   dispatches?: Prisma.BookingDispatchOrderByRelationAggregateInput
   bookings?: Prisma.BookingOrderByRelationAggregateInput
   bookingItems?: Prisma.BookingItemOrderByRelationAggregateInput
+  reviews?: Prisma.ReviewOrderByRelationAggregateInput
   user?: Prisma.UserOrderByWithRelationInput
   bankDetails?: Prisma.TechnicianBankDetailsOrderByWithRelationInput
   wallet?: Prisma.TechnicianWalletOrderByWithRelationInput
@@ -411,6 +422,7 @@ export type TechnicianProfileWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.TechnicianProfileWhereInput[]
   NOT?: Prisma.TechnicianProfileWhereInput | Prisma.TechnicianProfileWhereInput[]
   fullName?: Prisma.StringNullableFilter<"TechnicianProfile"> | string | null
+  contact?: Prisma.StringNullableFilter<"TechnicianProfile"> | string | null
   dateOfBirth?: Prisma.StringNullableFilter<"TechnicianProfile"> | string | null
   gender?: Prisma.EnumGenderNullableFilter<"TechnicianProfile"> | $Enums.Gender | null
   currentCity?: Prisma.StringNullableFilter<"TechnicianProfile"> | string | null
@@ -435,6 +447,7 @@ export type TechnicianProfileWhereUniqueInput = Prisma.AtLeast<{
   dispatches?: Prisma.BookingDispatchListRelationFilter
   bookings?: Prisma.BookingListRelationFilter
   bookingItems?: Prisma.BookingItemListRelationFilter
+  reviews?: Prisma.ReviewListRelationFilter
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   bankDetails?: Prisma.XOR<Prisma.TechnicianBankDetailsNullableScalarRelationFilter, Prisma.TechnicianBankDetailsWhereInput> | null
   wallet?: Prisma.XOR<Prisma.TechnicianWalletNullableScalarRelationFilter, Prisma.TechnicianWalletWhereInput> | null
@@ -444,6 +457,7 @@ export type TechnicianProfileOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   fullName?: Prisma.SortOrderInput | Prisma.SortOrder
+  contact?: Prisma.SortOrderInput | Prisma.SortOrder
   dateOfBirth?: Prisma.SortOrderInput | Prisma.SortOrder
   gender?: Prisma.SortOrderInput | Prisma.SortOrder
   currentCity?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -476,6 +490,7 @@ export type TechnicianProfileScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"TechnicianProfile"> | string
   userId?: Prisma.StringWithAggregatesFilter<"TechnicianProfile"> | string
   fullName?: Prisma.StringNullableWithAggregatesFilter<"TechnicianProfile"> | string | null
+  contact?: Prisma.StringNullableWithAggregatesFilter<"TechnicianProfile"> | string | null
   dateOfBirth?: Prisma.StringNullableWithAggregatesFilter<"TechnicianProfile"> | string | null
   gender?: Prisma.EnumGenderNullableWithAggregatesFilter<"TechnicianProfile"> | $Enums.Gender | null
   currentCity?: Prisma.StringNullableWithAggregatesFilter<"TechnicianProfile"> | string | null
@@ -499,6 +514,7 @@ export type TechnicianProfileScalarWhereWithAggregatesInput = {
 export type TechnicianProfileCreateInput = {
   id?: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -523,6 +539,7 @@ export type TechnicianProfileCreateInput = {
   dispatches?: Prisma.BookingDispatchCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutTechnicianInput
   user: Prisma.UserCreateNestedOneWithoutTechnicianProfileInput
   bankDetails?: Prisma.TechnicianBankDetailsCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletCreateNestedOneWithoutTechnicianInput
@@ -532,6 +549,7 @@ export type TechnicianProfileUncheckedCreateInput = {
   id?: string
   userId: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -556,6 +574,7 @@ export type TechnicianProfileUncheckedCreateInput = {
   dispatches?: Prisma.BookingDispatchUncheckedCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutTechnicianInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletUncheckedCreateNestedOneWithoutTechnicianInput
 }
@@ -563,6 +582,7 @@ export type TechnicianProfileUncheckedCreateInput = {
 export type TechnicianProfileUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -587,6 +607,7 @@ export type TechnicianProfileUpdateInput = {
   dispatches?: Prisma.BookingDispatchUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutTechnicianNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutTechnicianProfileNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUpdateOneWithoutTechnicianNestedInput
@@ -596,6 +617,7 @@ export type TechnicianProfileUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -620,6 +642,7 @@ export type TechnicianProfileUncheckedUpdateInput = {
   dispatches?: Prisma.BookingDispatchUncheckedUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutTechnicianNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUncheckedUpdateOneWithoutTechnicianNestedInput
 }
@@ -628,6 +651,7 @@ export type TechnicianProfileCreateManyInput = {
   id?: string
   userId: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -651,6 +675,7 @@ export type TechnicianProfileCreateManyInput = {
 export type TechnicianProfileUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -675,6 +700,7 @@ export type TechnicianProfileUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -704,6 +730,7 @@ export type TechnicianProfileCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   fullName?: Prisma.SortOrder
+  contact?: Prisma.SortOrder
   dateOfBirth?: Prisma.SortOrder
   gender?: Prisma.SortOrder
   currentCity?: Prisma.SortOrder
@@ -736,6 +763,7 @@ export type TechnicianProfileMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   fullName?: Prisma.SortOrder
+  contact?: Prisma.SortOrder
   dateOfBirth?: Prisma.SortOrder
   gender?: Prisma.SortOrder
   currentCity?: Prisma.SortOrder
@@ -760,6 +788,7 @@ export type TechnicianProfileMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   fullName?: Prisma.SortOrder
+  contact?: Prisma.SortOrder
   dateOfBirth?: Prisma.SortOrder
   gender?: Prisma.SortOrder
   currentCity?: Prisma.SortOrder
@@ -1011,9 +1040,24 @@ export type TechnicianProfileUpdateOneRequiredWithoutWalletNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.TechnicianProfileUpdateToOneWithWhereWithoutWalletInput, Prisma.TechnicianProfileUpdateWithoutWalletInput>, Prisma.TechnicianProfileUncheckedUpdateWithoutWalletInput>
 }
 
+export type TechnicianProfileCreateNestedOneWithoutReviewsInput = {
+  create?: Prisma.XOR<Prisma.TechnicianProfileCreateWithoutReviewsInput, Prisma.TechnicianProfileUncheckedCreateWithoutReviewsInput>
+  connectOrCreate?: Prisma.TechnicianProfileCreateOrConnectWithoutReviewsInput
+  connect?: Prisma.TechnicianProfileWhereUniqueInput
+}
+
+export type TechnicianProfileUpdateOneRequiredWithoutReviewsNestedInput = {
+  create?: Prisma.XOR<Prisma.TechnicianProfileCreateWithoutReviewsInput, Prisma.TechnicianProfileUncheckedCreateWithoutReviewsInput>
+  connectOrCreate?: Prisma.TechnicianProfileCreateOrConnectWithoutReviewsInput
+  upsert?: Prisma.TechnicianProfileUpsertWithoutReviewsInput
+  connect?: Prisma.TechnicianProfileWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TechnicianProfileUpdateToOneWithWhereWithoutReviewsInput, Prisma.TechnicianProfileUpdateWithoutReviewsInput>, Prisma.TechnicianProfileUncheckedUpdateWithoutReviewsInput>
+}
+
 export type TechnicianProfileCreateWithoutUserInput = {
   id?: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1038,6 +1082,7 @@ export type TechnicianProfileCreateWithoutUserInput = {
   dispatches?: Prisma.BookingDispatchCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutTechnicianInput
   bankDetails?: Prisma.TechnicianBankDetailsCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletCreateNestedOneWithoutTechnicianInput
 }
@@ -1045,6 +1090,7 @@ export type TechnicianProfileCreateWithoutUserInput = {
 export type TechnicianProfileUncheckedCreateWithoutUserInput = {
   id?: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1069,6 +1115,7 @@ export type TechnicianProfileUncheckedCreateWithoutUserInput = {
   dispatches?: Prisma.BookingDispatchUncheckedCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutTechnicianInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletUncheckedCreateNestedOneWithoutTechnicianInput
 }
@@ -1092,6 +1139,7 @@ export type TechnicianProfileUpdateToOneWithWhereWithoutUserInput = {
 export type TechnicianProfileUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1116,6 +1164,7 @@ export type TechnicianProfileUpdateWithoutUserInput = {
   dispatches?: Prisma.BookingDispatchUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutTechnicianNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUpdateOneWithoutTechnicianNestedInput
 }
@@ -1123,6 +1172,7 @@ export type TechnicianProfileUpdateWithoutUserInput = {
 export type TechnicianProfileUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1147,6 +1197,7 @@ export type TechnicianProfileUncheckedUpdateWithoutUserInput = {
   dispatches?: Prisma.BookingDispatchUncheckedUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutTechnicianNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUncheckedUpdateOneWithoutTechnicianNestedInput
 }
@@ -1154,6 +1205,7 @@ export type TechnicianProfileUncheckedUpdateWithoutUserInput = {
 export type TechnicianProfileCreateWithoutDocumentsInput = {
   id?: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1177,6 +1229,7 @@ export type TechnicianProfileCreateWithoutDocumentsInput = {
   dispatches?: Prisma.BookingDispatchCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutTechnicianInput
   user: Prisma.UserCreateNestedOneWithoutTechnicianProfileInput
   bankDetails?: Prisma.TechnicianBankDetailsCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletCreateNestedOneWithoutTechnicianInput
@@ -1186,6 +1239,7 @@ export type TechnicianProfileUncheckedCreateWithoutDocumentsInput = {
   id?: string
   userId: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1209,6 +1263,7 @@ export type TechnicianProfileUncheckedCreateWithoutDocumentsInput = {
   dispatches?: Prisma.BookingDispatchUncheckedCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutTechnicianInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletUncheckedCreateNestedOneWithoutTechnicianInput
 }
@@ -1232,6 +1287,7 @@ export type TechnicianProfileUpdateToOneWithWhereWithoutDocumentsInput = {
 export type TechnicianProfileUpdateWithoutDocumentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1255,6 +1311,7 @@ export type TechnicianProfileUpdateWithoutDocumentsInput = {
   dispatches?: Prisma.BookingDispatchUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutTechnicianNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutTechnicianProfileNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUpdateOneWithoutTechnicianNestedInput
@@ -1264,6 +1321,7 @@ export type TechnicianProfileUncheckedUpdateWithoutDocumentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1287,6 +1345,7 @@ export type TechnicianProfileUncheckedUpdateWithoutDocumentsInput = {
   dispatches?: Prisma.BookingDispatchUncheckedUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutTechnicianNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUncheckedUpdateOneWithoutTechnicianNestedInput
 }
@@ -1294,6 +1353,7 @@ export type TechnicianProfileUncheckedUpdateWithoutDocumentsInput = {
 export type TechnicianProfileCreateWithoutExperiencesInput = {
   id?: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1317,6 +1377,7 @@ export type TechnicianProfileCreateWithoutExperiencesInput = {
   dispatches?: Prisma.BookingDispatchCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutTechnicianInput
   user: Prisma.UserCreateNestedOneWithoutTechnicianProfileInput
   bankDetails?: Prisma.TechnicianBankDetailsCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletCreateNestedOneWithoutTechnicianInput
@@ -1326,6 +1387,7 @@ export type TechnicianProfileUncheckedCreateWithoutExperiencesInput = {
   id?: string
   userId: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1349,6 +1411,7 @@ export type TechnicianProfileUncheckedCreateWithoutExperiencesInput = {
   dispatches?: Prisma.BookingDispatchUncheckedCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutTechnicianInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletUncheckedCreateNestedOneWithoutTechnicianInput
 }
@@ -1372,6 +1435,7 @@ export type TechnicianProfileUpdateToOneWithWhereWithoutExperiencesInput = {
 export type TechnicianProfileUpdateWithoutExperiencesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1395,6 +1459,7 @@ export type TechnicianProfileUpdateWithoutExperiencesInput = {
   dispatches?: Prisma.BookingDispatchUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutTechnicianNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutTechnicianProfileNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUpdateOneWithoutTechnicianNestedInput
@@ -1404,6 +1469,7 @@ export type TechnicianProfileUncheckedUpdateWithoutExperiencesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1427,6 +1493,7 @@ export type TechnicianProfileUncheckedUpdateWithoutExperiencesInput = {
   dispatches?: Prisma.BookingDispatchUncheckedUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutTechnicianNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUncheckedUpdateOneWithoutTechnicianNestedInput
 }
@@ -1434,6 +1501,7 @@ export type TechnicianProfileUncheckedUpdateWithoutExperiencesInput = {
 export type TechnicianProfileCreateWithoutBankDetailsInput = {
   id?: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1458,6 +1526,7 @@ export type TechnicianProfileCreateWithoutBankDetailsInput = {
   dispatches?: Prisma.BookingDispatchCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutTechnicianInput
   user: Prisma.UserCreateNestedOneWithoutTechnicianProfileInput
   wallet?: Prisma.TechnicianWalletCreateNestedOneWithoutTechnicianInput
 }
@@ -1466,6 +1535,7 @@ export type TechnicianProfileUncheckedCreateWithoutBankDetailsInput = {
   id?: string
   userId: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1490,6 +1560,7 @@ export type TechnicianProfileUncheckedCreateWithoutBankDetailsInput = {
   dispatches?: Prisma.BookingDispatchUncheckedCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletUncheckedCreateNestedOneWithoutTechnicianInput
 }
 
@@ -1512,6 +1583,7 @@ export type TechnicianProfileUpdateToOneWithWhereWithoutBankDetailsInput = {
 export type TechnicianProfileUpdateWithoutBankDetailsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1536,6 +1608,7 @@ export type TechnicianProfileUpdateWithoutBankDetailsInput = {
   dispatches?: Prisma.BookingDispatchUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutTechnicianNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutTechnicianProfileNestedInput
   wallet?: Prisma.TechnicianWalletUpdateOneWithoutTechnicianNestedInput
 }
@@ -1544,6 +1617,7 @@ export type TechnicianProfileUncheckedUpdateWithoutBankDetailsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1568,12 +1642,14 @@ export type TechnicianProfileUncheckedUpdateWithoutBankDetailsInput = {
   dispatches?: Prisma.BookingDispatchUncheckedUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUncheckedUpdateOneWithoutTechnicianNestedInput
 }
 
 export type TechnicianProfileCreateWithoutSkillsInput = {
   id?: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1597,6 +1673,7 @@ export type TechnicianProfileCreateWithoutSkillsInput = {
   dispatches?: Prisma.BookingDispatchCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutTechnicianInput
   user: Prisma.UserCreateNestedOneWithoutTechnicianProfileInput
   bankDetails?: Prisma.TechnicianBankDetailsCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletCreateNestedOneWithoutTechnicianInput
@@ -1606,6 +1683,7 @@ export type TechnicianProfileUncheckedCreateWithoutSkillsInput = {
   id?: string
   userId: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1629,6 +1707,7 @@ export type TechnicianProfileUncheckedCreateWithoutSkillsInput = {
   dispatches?: Prisma.BookingDispatchUncheckedCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutTechnicianInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletUncheckedCreateNestedOneWithoutTechnicianInput
 }
@@ -1661,6 +1740,7 @@ export type TechnicianProfileScalarWhereInput = {
   id?: Prisma.StringFilter<"TechnicianProfile"> | string
   userId?: Prisma.StringFilter<"TechnicianProfile"> | string
   fullName?: Prisma.StringNullableFilter<"TechnicianProfile"> | string | null
+  contact?: Prisma.StringNullableFilter<"TechnicianProfile"> | string | null
   dateOfBirth?: Prisma.StringNullableFilter<"TechnicianProfile"> | string | null
   gender?: Prisma.EnumGenderNullableFilter<"TechnicianProfile"> | $Enums.Gender | null
   currentCity?: Prisma.StringNullableFilter<"TechnicianProfile"> | string | null
@@ -1684,6 +1764,7 @@ export type TechnicianProfileScalarWhereInput = {
 export type TechnicianProfileCreateWithoutBookingsInput = {
   id?: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1707,6 +1788,7 @@ export type TechnicianProfileCreateWithoutBookingsInput = {
   skills?: Prisma.CategoryCreateNestedManyWithoutTechnicianProfilesInput
   dispatches?: Prisma.BookingDispatchCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutTechnicianInput
   user: Prisma.UserCreateNestedOneWithoutTechnicianProfileInput
   bankDetails?: Prisma.TechnicianBankDetailsCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletCreateNestedOneWithoutTechnicianInput
@@ -1716,6 +1798,7 @@ export type TechnicianProfileUncheckedCreateWithoutBookingsInput = {
   id?: string
   userId: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1739,6 +1822,7 @@ export type TechnicianProfileUncheckedCreateWithoutBookingsInput = {
   skills?: Prisma.CategoryUncheckedCreateNestedManyWithoutTechnicianProfilesInput
   dispatches?: Prisma.BookingDispatchUncheckedCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutTechnicianInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletUncheckedCreateNestedOneWithoutTechnicianInput
 }
@@ -1762,6 +1846,7 @@ export type TechnicianProfileUpdateToOneWithWhereWithoutBookingsInput = {
 export type TechnicianProfileUpdateWithoutBookingsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1785,6 +1870,7 @@ export type TechnicianProfileUpdateWithoutBookingsInput = {
   skills?: Prisma.CategoryUpdateManyWithoutTechnicianProfilesNestedInput
   dispatches?: Prisma.BookingDispatchUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutTechnicianNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutTechnicianProfileNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUpdateOneWithoutTechnicianNestedInput
@@ -1794,6 +1880,7 @@ export type TechnicianProfileUncheckedUpdateWithoutBookingsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1817,6 +1904,7 @@ export type TechnicianProfileUncheckedUpdateWithoutBookingsInput = {
   skills?: Prisma.CategoryUncheckedUpdateManyWithoutTechnicianProfilesNestedInput
   dispatches?: Prisma.BookingDispatchUncheckedUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutTechnicianNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUncheckedUpdateOneWithoutTechnicianNestedInput
 }
@@ -1824,6 +1912,7 @@ export type TechnicianProfileUncheckedUpdateWithoutBookingsInput = {
 export type TechnicianProfileCreateWithoutBookingItemsInput = {
   id?: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1847,6 +1936,7 @@ export type TechnicianProfileCreateWithoutBookingItemsInput = {
   skills?: Prisma.CategoryCreateNestedManyWithoutTechnicianProfilesInput
   dispatches?: Prisma.BookingDispatchCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutTechnicianInput
   user: Prisma.UserCreateNestedOneWithoutTechnicianProfileInput
   bankDetails?: Prisma.TechnicianBankDetailsCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletCreateNestedOneWithoutTechnicianInput
@@ -1856,6 +1946,7 @@ export type TechnicianProfileUncheckedCreateWithoutBookingItemsInput = {
   id?: string
   userId: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1879,6 +1970,7 @@ export type TechnicianProfileUncheckedCreateWithoutBookingItemsInput = {
   skills?: Prisma.CategoryUncheckedCreateNestedManyWithoutTechnicianProfilesInput
   dispatches?: Prisma.BookingDispatchUncheckedCreateNestedManyWithoutTechnicianInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutTechnicianInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletUncheckedCreateNestedOneWithoutTechnicianInput
 }
@@ -1902,6 +1994,7 @@ export type TechnicianProfileUpdateToOneWithWhereWithoutBookingItemsInput = {
 export type TechnicianProfileUpdateWithoutBookingItemsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1925,6 +2018,7 @@ export type TechnicianProfileUpdateWithoutBookingItemsInput = {
   skills?: Prisma.CategoryUpdateManyWithoutTechnicianProfilesNestedInput
   dispatches?: Prisma.BookingDispatchUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutTechnicianNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutTechnicianProfileNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUpdateOneWithoutTechnicianNestedInput
@@ -1934,6 +2028,7 @@ export type TechnicianProfileUncheckedUpdateWithoutBookingItemsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1957,6 +2052,7 @@ export type TechnicianProfileUncheckedUpdateWithoutBookingItemsInput = {
   skills?: Prisma.CategoryUncheckedUpdateManyWithoutTechnicianProfilesNestedInput
   dispatches?: Prisma.BookingDispatchUncheckedUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutTechnicianNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUncheckedUpdateOneWithoutTechnicianNestedInput
 }
@@ -1964,6 +2060,7 @@ export type TechnicianProfileUncheckedUpdateWithoutBookingItemsInput = {
 export type TechnicianProfileCreateWithoutDispatchesInput = {
   id?: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -1987,6 +2084,7 @@ export type TechnicianProfileCreateWithoutDispatchesInput = {
   skills?: Prisma.CategoryCreateNestedManyWithoutTechnicianProfilesInput
   bookings?: Prisma.BookingCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutTechnicianInput
   user: Prisma.UserCreateNestedOneWithoutTechnicianProfileInput
   bankDetails?: Prisma.TechnicianBankDetailsCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletCreateNestedOneWithoutTechnicianInput
@@ -1996,6 +2094,7 @@ export type TechnicianProfileUncheckedCreateWithoutDispatchesInput = {
   id?: string
   userId: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -2019,6 +2118,7 @@ export type TechnicianProfileUncheckedCreateWithoutDispatchesInput = {
   skills?: Prisma.CategoryUncheckedCreateNestedManyWithoutTechnicianProfilesInput
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutTechnicianInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedCreateNestedOneWithoutTechnicianInput
   wallet?: Prisma.TechnicianWalletUncheckedCreateNestedOneWithoutTechnicianInput
 }
@@ -2042,6 +2142,7 @@ export type TechnicianProfileUpdateToOneWithWhereWithoutDispatchesInput = {
 export type TechnicianProfileUpdateWithoutDispatchesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2065,6 +2166,7 @@ export type TechnicianProfileUpdateWithoutDispatchesInput = {
   skills?: Prisma.CategoryUpdateManyWithoutTechnicianProfilesNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutTechnicianNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutTechnicianProfileNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUpdateOneWithoutTechnicianNestedInput
@@ -2074,6 +2176,7 @@ export type TechnicianProfileUncheckedUpdateWithoutDispatchesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2097,6 +2200,7 @@ export type TechnicianProfileUncheckedUpdateWithoutDispatchesInput = {
   skills?: Prisma.CategoryUncheckedUpdateManyWithoutTechnicianProfilesNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutTechnicianNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUncheckedUpdateOneWithoutTechnicianNestedInput
 }
@@ -2104,6 +2208,155 @@ export type TechnicianProfileUncheckedUpdateWithoutDispatchesInput = {
 export type TechnicianProfileCreateWithoutWalletInput = {
   id?: string
   fullName?: string | null
+  contact?: string | null
+  dateOfBirth?: string | null
+  gender?: $Enums.Gender | null
+  currentCity?: string | null
+  currentState?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  pinCode?: string | null
+  bio?: string | null
+  experienceYears?: number | null
+  onboardingStatus?: $Enums.OnboardingStatus
+  submittedAt?: Date | string | null
+  profilePhoto?: string | null
+  isOnline?: boolean
+  lastLocationUpdatedAt?: Date | string | null
+  rating?: number | null
+  totalRatings?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  documents?: Prisma.TechnicianDocumentCreateNestedManyWithoutTechnicianInput
+  experiences?: Prisma.TechnicianExperienceCreateNestedManyWithoutTechnicianInput
+  skills?: Prisma.CategoryCreateNestedManyWithoutTechnicianProfilesInput
+  dispatches?: Prisma.BookingDispatchCreateNestedManyWithoutTechnicianInput
+  bookings?: Prisma.BookingCreateNestedManyWithoutTechnicianInput
+  bookingItems?: Prisma.BookingItemCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutTechnicianInput
+  user: Prisma.UserCreateNestedOneWithoutTechnicianProfileInput
+  bankDetails?: Prisma.TechnicianBankDetailsCreateNestedOneWithoutTechnicianInput
+}
+
+export type TechnicianProfileUncheckedCreateWithoutWalletInput = {
+  id?: string
+  userId: string
+  fullName?: string | null
+  contact?: string | null
+  dateOfBirth?: string | null
+  gender?: $Enums.Gender | null
+  currentCity?: string | null
+  currentState?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  pinCode?: string | null
+  bio?: string | null
+  experienceYears?: number | null
+  onboardingStatus?: $Enums.OnboardingStatus
+  submittedAt?: Date | string | null
+  profilePhoto?: string | null
+  isOnline?: boolean
+  lastLocationUpdatedAt?: Date | string | null
+  rating?: number | null
+  totalRatings?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  documents?: Prisma.TechnicianDocumentUncheckedCreateNestedManyWithoutTechnicianInput
+  experiences?: Prisma.TechnicianExperienceUncheckedCreateNestedManyWithoutTechnicianInput
+  skills?: Prisma.CategoryUncheckedCreateNestedManyWithoutTechnicianProfilesInput
+  dispatches?: Prisma.BookingDispatchUncheckedCreateNestedManyWithoutTechnicianInput
+  bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutTechnicianInput
+  bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutTechnicianInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutTechnicianInput
+  bankDetails?: Prisma.TechnicianBankDetailsUncheckedCreateNestedOneWithoutTechnicianInput
+}
+
+export type TechnicianProfileCreateOrConnectWithoutWalletInput = {
+  where: Prisma.TechnicianProfileWhereUniqueInput
+  create: Prisma.XOR<Prisma.TechnicianProfileCreateWithoutWalletInput, Prisma.TechnicianProfileUncheckedCreateWithoutWalletInput>
+}
+
+export type TechnicianProfileUpsertWithoutWalletInput = {
+  update: Prisma.XOR<Prisma.TechnicianProfileUpdateWithoutWalletInput, Prisma.TechnicianProfileUncheckedUpdateWithoutWalletInput>
+  create: Prisma.XOR<Prisma.TechnicianProfileCreateWithoutWalletInput, Prisma.TechnicianProfileUncheckedCreateWithoutWalletInput>
+  where?: Prisma.TechnicianProfileWhereInput
+}
+
+export type TechnicianProfileUpdateToOneWithWhereWithoutWalletInput = {
+  where?: Prisma.TechnicianProfileWhereInput
+  data: Prisma.XOR<Prisma.TechnicianProfileUpdateWithoutWalletInput, Prisma.TechnicianProfileUncheckedUpdateWithoutWalletInput>
+}
+
+export type TechnicianProfileUpdateWithoutWalletInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+  currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currentState?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  longitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  pinCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  experienceYears?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  onboardingStatus?: Prisma.EnumOnboardingStatusFieldUpdateOperationsInput | $Enums.OnboardingStatus
+  submittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  profilePhoto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLocationUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rating?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  totalRatings?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  documents?: Prisma.TechnicianDocumentUpdateManyWithoutTechnicianNestedInput
+  experiences?: Prisma.TechnicianExperienceUpdateManyWithoutTechnicianNestedInput
+  skills?: Prisma.CategoryUpdateManyWithoutTechnicianProfilesNestedInput
+  dispatches?: Prisma.BookingDispatchUpdateManyWithoutTechnicianNestedInput
+  bookings?: Prisma.BookingUpdateManyWithoutTechnicianNestedInput
+  bookingItems?: Prisma.BookingItemUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutTechnicianNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutTechnicianProfileNestedInput
+  bankDetails?: Prisma.TechnicianBankDetailsUpdateOneWithoutTechnicianNestedInput
+}
+
+export type TechnicianProfileUncheckedUpdateWithoutWalletInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+  currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currentState?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  longitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  pinCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  experienceYears?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  onboardingStatus?: Prisma.EnumOnboardingStatusFieldUpdateOperationsInput | $Enums.OnboardingStatus
+  submittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  profilePhoto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLocationUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rating?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  totalRatings?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  documents?: Prisma.TechnicianDocumentUncheckedUpdateManyWithoutTechnicianNestedInput
+  experiences?: Prisma.TechnicianExperienceUncheckedUpdateManyWithoutTechnicianNestedInput
+  skills?: Prisma.CategoryUncheckedUpdateManyWithoutTechnicianProfilesNestedInput
+  dispatches?: Prisma.BookingDispatchUncheckedUpdateManyWithoutTechnicianNestedInput
+  bookings?: Prisma.BookingUncheckedUpdateManyWithoutTechnicianNestedInput
+  bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutTechnicianNestedInput
+  bankDetails?: Prisma.TechnicianBankDetailsUncheckedUpdateOneWithoutTechnicianNestedInput
+}
+
+export type TechnicianProfileCreateWithoutReviewsInput = {
+  id?: string
+  fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -2130,12 +2383,14 @@ export type TechnicianProfileCreateWithoutWalletInput = {
   bookingItems?: Prisma.BookingItemCreateNestedManyWithoutTechnicianInput
   user: Prisma.UserCreateNestedOneWithoutTechnicianProfileInput
   bankDetails?: Prisma.TechnicianBankDetailsCreateNestedOneWithoutTechnicianInput
+  wallet?: Prisma.TechnicianWalletCreateNestedOneWithoutTechnicianInput
 }
 
-export type TechnicianProfileUncheckedCreateWithoutWalletInput = {
+export type TechnicianProfileUncheckedCreateWithoutReviewsInput = {
   id?: string
   userId: string
   fullName?: string | null
+  contact?: string | null
   dateOfBirth?: string | null
   gender?: $Enums.Gender | null
   currentCity?: string | null
@@ -2161,27 +2416,29 @@ export type TechnicianProfileUncheckedCreateWithoutWalletInput = {
   bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutTechnicianInput
   bookingItems?: Prisma.BookingItemUncheckedCreateNestedManyWithoutTechnicianInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedCreateNestedOneWithoutTechnicianInput
+  wallet?: Prisma.TechnicianWalletUncheckedCreateNestedOneWithoutTechnicianInput
 }
 
-export type TechnicianProfileCreateOrConnectWithoutWalletInput = {
+export type TechnicianProfileCreateOrConnectWithoutReviewsInput = {
   where: Prisma.TechnicianProfileWhereUniqueInput
-  create: Prisma.XOR<Prisma.TechnicianProfileCreateWithoutWalletInput, Prisma.TechnicianProfileUncheckedCreateWithoutWalletInput>
+  create: Prisma.XOR<Prisma.TechnicianProfileCreateWithoutReviewsInput, Prisma.TechnicianProfileUncheckedCreateWithoutReviewsInput>
 }
 
-export type TechnicianProfileUpsertWithoutWalletInput = {
-  update: Prisma.XOR<Prisma.TechnicianProfileUpdateWithoutWalletInput, Prisma.TechnicianProfileUncheckedUpdateWithoutWalletInput>
-  create: Prisma.XOR<Prisma.TechnicianProfileCreateWithoutWalletInput, Prisma.TechnicianProfileUncheckedCreateWithoutWalletInput>
+export type TechnicianProfileUpsertWithoutReviewsInput = {
+  update: Prisma.XOR<Prisma.TechnicianProfileUpdateWithoutReviewsInput, Prisma.TechnicianProfileUncheckedUpdateWithoutReviewsInput>
+  create: Prisma.XOR<Prisma.TechnicianProfileCreateWithoutReviewsInput, Prisma.TechnicianProfileUncheckedCreateWithoutReviewsInput>
   where?: Prisma.TechnicianProfileWhereInput
 }
 
-export type TechnicianProfileUpdateToOneWithWhereWithoutWalletInput = {
+export type TechnicianProfileUpdateToOneWithWhereWithoutReviewsInput = {
   where?: Prisma.TechnicianProfileWhereInput
-  data: Prisma.XOR<Prisma.TechnicianProfileUpdateWithoutWalletInput, Prisma.TechnicianProfileUncheckedUpdateWithoutWalletInput>
+  data: Prisma.XOR<Prisma.TechnicianProfileUpdateWithoutReviewsInput, Prisma.TechnicianProfileUncheckedUpdateWithoutReviewsInput>
 }
 
-export type TechnicianProfileUpdateWithoutWalletInput = {
+export type TechnicianProfileUpdateWithoutReviewsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2208,12 +2465,14 @@ export type TechnicianProfileUpdateWithoutWalletInput = {
   bookingItems?: Prisma.BookingItemUpdateManyWithoutTechnicianNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutTechnicianProfileNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUpdateOneWithoutTechnicianNestedInput
+  wallet?: Prisma.TechnicianWalletUpdateOneWithoutTechnicianNestedInput
 }
 
-export type TechnicianProfileUncheckedUpdateWithoutWalletInput = {
+export type TechnicianProfileUncheckedUpdateWithoutReviewsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2239,11 +2498,13 @@ export type TechnicianProfileUncheckedUpdateWithoutWalletInput = {
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutTechnicianNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedUpdateOneWithoutTechnicianNestedInput
+  wallet?: Prisma.TechnicianWalletUncheckedUpdateOneWithoutTechnicianNestedInput
 }
 
 export type TechnicianProfileUpdateWithoutSkillsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2267,6 +2528,7 @@ export type TechnicianProfileUpdateWithoutSkillsInput = {
   dispatches?: Prisma.BookingDispatchUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutTechnicianNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutTechnicianProfileNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUpdateOneWithoutTechnicianNestedInput
@@ -2276,6 +2538,7 @@ export type TechnicianProfileUncheckedUpdateWithoutSkillsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2299,6 +2562,7 @@ export type TechnicianProfileUncheckedUpdateWithoutSkillsInput = {
   dispatches?: Prisma.BookingDispatchUncheckedUpdateManyWithoutTechnicianNestedInput
   bookings?: Prisma.BookingUncheckedUpdateManyWithoutTechnicianNestedInput
   bookingItems?: Prisma.BookingItemUncheckedUpdateManyWithoutTechnicianNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutTechnicianNestedInput
   bankDetails?: Prisma.TechnicianBankDetailsUncheckedUpdateOneWithoutTechnicianNestedInput
   wallet?: Prisma.TechnicianWalletUncheckedUpdateOneWithoutTechnicianNestedInput
 }
@@ -2307,6 +2571,7 @@ export type TechnicianProfileUncheckedUpdateManyWithoutSkillsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gender?: Prisma.NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
   currentCity?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2339,6 +2604,7 @@ export type TechnicianProfileCountOutputType = {
   dispatches: number
   bookings: number
   bookingItems: number
+  reviews: number
 }
 
 export type TechnicianProfileCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2348,6 +2614,7 @@ export type TechnicianProfileCountOutputTypeSelect<ExtArgs extends runtime.Types
   dispatches?: boolean | TechnicianProfileCountOutputTypeCountDispatchesArgs
   bookings?: boolean | TechnicianProfileCountOutputTypeCountBookingsArgs
   bookingItems?: boolean | TechnicianProfileCountOutputTypeCountBookingItemsArgs
+  reviews?: boolean | TechnicianProfileCountOutputTypeCountReviewsArgs
 }
 
 /**
@@ -2402,11 +2669,19 @@ export type TechnicianProfileCountOutputTypeCountBookingItemsArgs<ExtArgs extend
   where?: Prisma.BookingItemWhereInput
 }
 
+/**
+ * TechnicianProfileCountOutputType without action
+ */
+export type TechnicianProfileCountOutputTypeCountReviewsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ReviewWhereInput
+}
+
 
 export type TechnicianProfileSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
   fullName?: boolean
+  contact?: boolean
   dateOfBirth?: boolean
   gender?: boolean
   currentCity?: boolean
@@ -2431,6 +2706,7 @@ export type TechnicianProfileSelect<ExtArgs extends runtime.Types.Extensions.Int
   dispatches?: boolean | Prisma.TechnicianProfile$dispatchesArgs<ExtArgs>
   bookings?: boolean | Prisma.TechnicianProfile$bookingsArgs<ExtArgs>
   bookingItems?: boolean | Prisma.TechnicianProfile$bookingItemsArgs<ExtArgs>
+  reviews?: boolean | Prisma.TechnicianProfile$reviewsArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   bankDetails?: boolean | Prisma.TechnicianProfile$bankDetailsArgs<ExtArgs>
   wallet?: boolean | Prisma.TechnicianProfile$walletArgs<ExtArgs>
@@ -2441,6 +2717,7 @@ export type TechnicianProfileSelectCreateManyAndReturn<ExtArgs extends runtime.T
   id?: boolean
   userId?: boolean
   fullName?: boolean
+  contact?: boolean
   dateOfBirth?: boolean
   gender?: boolean
   currentCity?: boolean
@@ -2466,6 +2743,7 @@ export type TechnicianProfileSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   id?: boolean
   userId?: boolean
   fullName?: boolean
+  contact?: boolean
   dateOfBirth?: boolean
   gender?: boolean
   currentCity?: boolean
@@ -2491,6 +2769,7 @@ export type TechnicianProfileSelectScalar = {
   id?: boolean
   userId?: boolean
   fullName?: boolean
+  contact?: boolean
   dateOfBirth?: boolean
   gender?: boolean
   currentCity?: boolean
@@ -2511,7 +2790,7 @@ export type TechnicianProfileSelectScalar = {
   updatedAt?: boolean
 }
 
-export type TechnicianProfileOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "fullName" | "dateOfBirth" | "gender" | "currentCity" | "currentState" | "latitude" | "longitude" | "pinCode" | "bio" | "experienceYears" | "onboardingStatus" | "submittedAt" | "profilePhoto" | "isOnline" | "lastLocationUpdatedAt" | "rating" | "totalRatings" | "createdAt" | "updatedAt", ExtArgs["result"]["technicianProfile"]>
+export type TechnicianProfileOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "fullName" | "contact" | "dateOfBirth" | "gender" | "currentCity" | "currentState" | "latitude" | "longitude" | "pinCode" | "bio" | "experienceYears" | "onboardingStatus" | "submittedAt" | "profilePhoto" | "isOnline" | "lastLocationUpdatedAt" | "rating" | "totalRatings" | "createdAt" | "updatedAt", ExtArgs["result"]["technicianProfile"]>
 export type TechnicianProfileInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   documents?: boolean | Prisma.TechnicianProfile$documentsArgs<ExtArgs>
   experiences?: boolean | Prisma.TechnicianProfile$experiencesArgs<ExtArgs>
@@ -2519,6 +2798,7 @@ export type TechnicianProfileInclude<ExtArgs extends runtime.Types.Extensions.In
   dispatches?: boolean | Prisma.TechnicianProfile$dispatchesArgs<ExtArgs>
   bookings?: boolean | Prisma.TechnicianProfile$bookingsArgs<ExtArgs>
   bookingItems?: boolean | Prisma.TechnicianProfile$bookingItemsArgs<ExtArgs>
+  reviews?: boolean | Prisma.TechnicianProfile$reviewsArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   bankDetails?: boolean | Prisma.TechnicianProfile$bankDetailsArgs<ExtArgs>
   wallet?: boolean | Prisma.TechnicianProfile$walletArgs<ExtArgs>
@@ -2540,6 +2820,7 @@ export type $TechnicianProfilePayload<ExtArgs extends runtime.Types.Extensions.I
     dispatches: Prisma.$BookingDispatchPayload<ExtArgs>[]
     bookings: Prisma.$BookingPayload<ExtArgs>[]
     bookingItems: Prisma.$BookingItemPayload<ExtArgs>[]
+    reviews: Prisma.$ReviewPayload<ExtArgs>[]
     user: Prisma.$UserPayload<ExtArgs>
     bankDetails: Prisma.$TechnicianBankDetailsPayload<ExtArgs> | null
     wallet: Prisma.$TechnicianWalletPayload<ExtArgs> | null
@@ -2548,6 +2829,7 @@ export type $TechnicianProfilePayload<ExtArgs extends runtime.Types.Extensions.I
     id: string
     userId: string
     fullName: string | null
+    contact: string | null
     dateOfBirth: string | null
     gender: $Enums.Gender | null
     currentCity: string | null
@@ -2966,6 +3248,7 @@ export interface Prisma__TechnicianProfileClient<T, Null = never, ExtArgs extend
   dispatches<T extends Prisma.TechnicianProfile$dispatchesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TechnicianProfile$dispatchesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BookingDispatchPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   bookings<T extends Prisma.TechnicianProfile$bookingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TechnicianProfile$bookingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BookingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   bookingItems<T extends Prisma.TechnicianProfile$bookingItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TechnicianProfile$bookingItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BookingItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  reviews<T extends Prisma.TechnicianProfile$reviewsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TechnicianProfile$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReviewPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   bankDetails<T extends Prisma.TechnicianProfile$bankDetailsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TechnicianProfile$bankDetailsArgs<ExtArgs>>): Prisma.Prisma__TechnicianBankDetailsClient<runtime.Types.Result.GetResult<Prisma.$TechnicianBankDetailsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   wallet<T extends Prisma.TechnicianProfile$walletArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TechnicianProfile$walletArgs<ExtArgs>>): Prisma.Prisma__TechnicianWalletClient<runtime.Types.Result.GetResult<Prisma.$TechnicianWalletPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -3001,6 +3284,7 @@ export interface TechnicianProfileFieldRefs {
   readonly id: Prisma.FieldRef<"TechnicianProfile", 'String'>
   readonly userId: Prisma.FieldRef<"TechnicianProfile", 'String'>
   readonly fullName: Prisma.FieldRef<"TechnicianProfile", 'String'>
+  readonly contact: Prisma.FieldRef<"TechnicianProfile", 'String'>
   readonly dateOfBirth: Prisma.FieldRef<"TechnicianProfile", 'String'>
   readonly gender: Prisma.FieldRef<"TechnicianProfile", 'Gender'>
   readonly currentCity: Prisma.FieldRef<"TechnicianProfile", 'String'>
@@ -3561,6 +3845,30 @@ export type TechnicianProfile$bookingItemsArgs<ExtArgs extends runtime.Types.Ext
   take?: number
   skip?: number
   distinct?: Prisma.BookingItemScalarFieldEnum | Prisma.BookingItemScalarFieldEnum[]
+}
+
+/**
+ * TechnicianProfile.reviews
+ */
+export type TechnicianProfile$reviewsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Review
+   */
+  select?: Prisma.ReviewSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Review
+   */
+  omit?: Prisma.ReviewOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ReviewInclude<ExtArgs> | null
+  where?: Prisma.ReviewWhereInput
+  orderBy?: Prisma.ReviewOrderByWithRelationInput | Prisma.ReviewOrderByWithRelationInput[]
+  cursor?: Prisma.ReviewWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ReviewScalarFieldEnum | Prisma.ReviewScalarFieldEnum[]
 }
 
 /**

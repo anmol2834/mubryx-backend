@@ -68,6 +68,17 @@ export class TechnicianBookingController {
     return this.technicianBookingService.updateBookingStatus(userId, id, status, otp);
   }
 
+  @Post(':id/request-review')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request customer review when technician clicks End Service' })
+  async requestReview(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    const userId = getUserIdFromUser(user);
+    return this.technicianBookingService.requestReview(userId, id);
+  }
+
   @Post(':id/generate-happy-code')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Generate Happy Code for booking completion' })

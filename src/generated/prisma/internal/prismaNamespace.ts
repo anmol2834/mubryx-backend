@@ -420,7 +420,8 @@ export const ModelName = {
   TechnicianWallet: 'TechnicianWallet',
   WalletTransaction: 'WalletTransaction',
   AdminWallet: 'AdminWallet',
-  AdminWalletTransaction: 'AdminWalletTransaction'
+  AdminWalletTransaction: 'AdminWalletTransaction',
+  Review: 'Review'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -436,7 +437,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "refreshToken" | "customerProfile" | "technicianProfile" | "technicianDocument" | "technicianExperience" | "technicianBankDetails" | "category" | "service" | "cart" | "cartItem" | "customerAddress" | "booking" | "bookingItem" | "bookingStatusHistory" | "bookingDispatch" | "notification" | "devicePushToken" | "bookingSparePart" | "technicianWallet" | "walletTransaction" | "adminWallet" | "adminWalletTransaction"
+    modelProps: "user" | "session" | "refreshToken" | "customerProfile" | "technicianProfile" | "technicianDocument" | "technicianExperience" | "technicianBankDetails" | "category" | "service" | "cart" | "cartItem" | "customerAddress" | "booking" | "bookingItem" | "bookingStatusHistory" | "bookingDispatch" | "notification" | "devicePushToken" | "bookingSparePart" | "technicianWallet" | "walletTransaction" | "adminWallet" | "adminWalletTransaction" | "review"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2216,6 +2217,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Review: {
+      payload: Prisma.$ReviewPayload<ExtArgs>
+      fields: Prisma.ReviewFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ReviewFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReviewPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ReviewFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReviewPayload>
+        }
+        findFirst: {
+          args: Prisma.ReviewFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReviewPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ReviewFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReviewPayload>
+        }
+        findMany: {
+          args: Prisma.ReviewFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReviewPayload>[]
+        }
+        create: {
+          args: Prisma.ReviewCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReviewPayload>
+        }
+        createMany: {
+          args: Prisma.ReviewCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ReviewCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReviewPayload>[]
+        }
+        delete: {
+          args: Prisma.ReviewDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReviewPayload>
+        }
+        update: {
+          args: Prisma.ReviewUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReviewPayload>
+        }
+        deleteMany: {
+          args: Prisma.ReviewDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ReviewUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ReviewUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReviewPayload>[]
+        }
+        upsert: {
+          args: Prisma.ReviewUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReviewPayload>
+        }
+        aggregate: {
+          args: Prisma.ReviewAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateReview>
+        }
+        groupBy: {
+          args: Prisma.ReviewGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ReviewGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ReviewCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ReviewCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2311,6 +2386,7 @@ export const TechnicianProfileScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   fullName: 'fullName',
+  contact: 'contact',
   dateOfBirth: 'dateOfBirth',
   gender: 'gender',
   currentCity: 'currentCity',
@@ -2511,6 +2587,9 @@ export const BookingScalarFieldEnum = {
   couponCode: 'couponCode',
   otp: 'otp',
   happyCode: 'happyCode',
+  invoiceNumber: 'invoiceNumber',
+  invoiceUrl: 'invoiceUrl',
+  invoiceGeneratedAt: 'invoiceGeneratedAt',
   customerNotes: 'customerNotes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -2673,6 +2752,22 @@ export const AdminWalletTransactionScalarFieldEnum = {
 } as const
 
 export type AdminWalletTransactionScalarFieldEnum = (typeof AdminWalletTransactionScalarFieldEnum)[keyof typeof AdminWalletTransactionScalarFieldEnum]
+
+
+export const ReviewScalarFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  customerId: 'customerId',
+  technicianId: 'technicianId',
+  serviceId: 'serviceId',
+  rating: 'rating',
+  comment: 'comment',
+  suggestion: 'suggestion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ReviewScalarFieldEnum = (typeof ReviewScalarFieldEnum)[keyof typeof ReviewScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -3169,6 +3264,7 @@ export type GlobalOmitConfig = {
   walletTransaction?: Prisma.WalletTransactionOmit
   adminWallet?: Prisma.AdminWalletOmit
   adminWalletTransaction?: Prisma.AdminWalletTransactionOmit
+  review?: Prisma.ReviewOmit
 }
 
 /* Types for Logging */
